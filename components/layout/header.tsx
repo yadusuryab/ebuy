@@ -1,377 +1,571 @@
 "use client";
-import React, { useState, useRef, useEffect } from "react";
-import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { Search, ShoppingBag, X, ArrowRight, Menu, Zap } from "lucide-react";
+import React, { useState, useRef, useEffect, Suspense } from "react";
 import Brand from "../utils/brand";
+import { Button } from "../ui/button";
+import Link from "next/link";
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import {
+  IconSearch,
+  IconShoppingBag,
+  IconMenu2,
+  IconX,
+  IconHome,
+  IconHeart,
+  IconUser,
+  IconChevronRight,
+  IconPackage,
+  IconMenu,
+} from "@tabler/icons-react";
 
-const NAV_LEFT = [
-  { name: "Terms", href: "/terms" },
-  { name: "Privacy", href: "/privacy" },
-];
-
-const SCROLL_THRESHOLD = 60;
-
-type MegaItem = { name: string; tag?: string };
-type MegaCol = { label: string; items: MegaItem[] };
-type NavItem = { name: string; href?: string; mega?: MegaCol[] };
-
-// ─── SearchOverlay ────────────────────────────────────────────────────────────
-function SearchOverlay({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const inputRef = useRef<HTMLInputElement>(null);
+function HeaderWithSearchParams({
+  children,
+}: {
+  children: (params: {
+    searchParams: ReturnType<typeof useSearchParams>;
+    pathname: ReturnType<typeof usePathname>;
+    router: ReturnType<typeof useRouter>;
+  }) => React.ReactNode;
+}) {
+  const searchParams = useSearchParams();
+  const pathname = usePathname();
   const router = useRouter();
-  const [query, setQuery] = useState("");
+
+  return children({ searchParams, pathname, router });
+}
+
+function Header() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [categories, setCategories] = useState<any>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+  const [isScrolled, setIsScrolled] = useState(false);
+  const [isSearchFocused, setIsSearchFocused] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const headerRef = useRef<HTMLElement>(null);
+  const topSectionRef = useRef<HTMLDivElement>(null);
+  const [topSectionHeight, setTopSectionHeight] = useState(0);
+  const lastScrollY = useRef(0);
+  const ticking = useRef(false);
+
+  const hideSearchPaths = [
+    "/checkout",
+    "/cart",
+    "/checkout/success",
+    "/account",
+    "/wishlist",
+  ];
+
+  const [placeholderIndex, setPlaceholderIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const placeholders = [
+    "Search products...",
+    "Find watches",
+    "Explore gadgets",
+    "Shop fashion",
+    "Discover trends",
+  ];
 
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 150);
-  }, [open]);
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (query.trim()) {
-      router.push(`/products?q=${encodeURIComponent(query.trim())}`);
-      onClose();
-      setQuery("");
+    if (isMobileMenuOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
     }
-  };
-
-  return (
-    <div
-      className={`
-        fixed inset-0 z-[200] bg-neutral-950/98 backdrop-blur-xl
-        flex flex-col items-center justify-center
-        transition-all duration-300
-        ${open ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}
-      `}
-    >
-      {/* diagonal accent line */}
-      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-500 via-red-500 to-orange-500" />
-
-      <button
-        onClick={onClose}
-        aria-label="Close search"
-        className="absolute top-6 right-8 w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-white hover:bg-white/5 rounded transition-all duration-200 border border-transparent hover:border-white/10"
-      >
-        <X className="w-4 h-4" strokeWidth={2} />
-      </button>
-
-      <div className="w-full max-w-[620px] px-6">
-        <div className="flex items-center gap-2 mb-5">
-          <Zap className="w-3.5 h-3.5 text-orange-500" strokeWidth={2.5} />
-          <p className="text-[9px] font-black tracking-[0.4em] uppercase text-orange-500">
-            Quick Search
-          </p>
-        </div>
-        <form onSubmit={handleSubmit} className="relative">
-          <input
-            ref={inputRef}
-            type="search"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Reference, model, brand…"
-            autoComplete="off"
-            className="
-              w-full bg-transparent
-              font-['Bebas_Neue',sans-serif] text-[clamp(32px,6vw,56px)] tracking-wider
-              text-white placeholder:text-neutral-700
-              border-0 border-b-2 border-neutral-800 focus:border-orange-500
-              outline-none pb-3 pr-12
-              caret-orange-500 transition-colors duration-300
-            "
-          />
-          <button
-            type="submit"
-            aria-label="Submit search"
-            className={`absolute right-0 bottom-3 w-10 h-10 flex items-center justify-center rounded transition-all duration-200 ${
-              query.trim()
-                ? "text-orange-500 hover:text-white hover:bg-orange-500"
-                : "text-neutral-700 pointer-events-none"
-            }`}
-          >
-            <ArrowRight className="w-5 h-5" strokeWidth={2} />
-          </button>
-        </form>
-        <p className="mt-4 text-[9px] tracking-[0.25em] uppercase text-neutral-600 hidden sm:block font-semibold">
-          Press Enter · Esc to close
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ─── MobileMenu ───────────────────────────────────────────────────────────────
-function MobileMenu({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const pathname = usePathname();
-  return (
-    <div
-      className={`
-        fixed inset-0 z-[150] bg-neutral-950
-        flex flex-col
-        transition-all duration-300 ease-out
-        ${open ? "opacity-100 pointer-events-auto translate-x-0" : "opacity-0 pointer-events-none -translate-x-4"}
-      `}
-    >
-      {/* top accent bar */}
-      <div className="w-full h-1 bg-gradient-to-r from-orange-500 via-red-500 to-orange-500 shrink-0" />
-
-      <div className="flex items-center justify-between px-5 h-[60px] shrink-0 border-b border-neutral-800">
-        <button
-          onClick={onClose}
-          className="w-10 h-10 flex items-center justify-center text-neutral-400 hover:text-white transition-colors"
-        >
-          <X className="w-5 h-5" strokeWidth={2} />
-        </button>
-        <div className="text-white font-['Bebas_Neue',sans-serif] text-[22px] tracking-[0.2em] uppercase">
-          <Brand />
-        </div>
-        <div className="w-10" />
-      </div>
-
-      <nav className="flex-1 flex flex-col justify-center px-8 gap-0">
-        {NAV_LEFT.map((item, i) => (
-          <Link
-            key={item.name}
-            href={item.href ?? "#"}
-            onClick={onClose}
-            className={`
-              group flex items-center justify-between
-              py-5 border-b border-neutral-800/60 last:border-0
-              no-underline transition-all duration-200
-              ${pathname === item.href ? "text-orange-500" : "text-neutral-500 hover:text-white"}
-            `}
-            style={{ transitionDelay: open ? `${i * 50 + 80}ms` : "0ms" }}
-          >
-            <span className="font-['Bebas_Neue',sans-serif] text-[clamp(32px,9vw,60px)] tracking-widest leading-none">
-              {item.name}
-            </span>
-            <ArrowRight
-              className="w-5 h-5 -translate-x-2 opacity-0 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-200 text-orange-500 shrink-0"
-              strokeWidth={2}
-            />
-          </Link>
-        ))}
-      </nav>
-
-      <div className="px-8 pb-10 shrink-0">
-        <p className="text-[9px] tracking-[0.25em] uppercase text-neutral-600 font-bold text-center">
-          MADE BY{" "}
-          <Link href="https://instagram.com/getshopigo" className="text-orange-500 hover:text-orange-400 transition-colors">
-            SHOPIGO
-          </Link>
-        </p>
-      </div>
-    </div>
-  );
-}
-
-// ─── Header ───────────────────────────────────────────────────────────────────
-export default function Header() {
-  const pathname = usePathname();
-  const [scrolled, setScrolled] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  const isHome = pathname === "/";
-  const isOverHero = isHome && !scrolled && !menuOpen && !searchOpen;
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > SCROLL_THRESHOLD);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  useEffect(() => {
-    setMenuOpen(false);
-    setSearchOpen(false);
-  }, [pathname]);
-
-  useEffect(() => {
-    document.body.style.overflow = menuOpen || searchOpen ? "hidden" : "";
-    return () => { document.body.style.overflow = ""; };
-  }, [menuOpen, searchOpen]);
-
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        setSearchOpen(false);
-        setMenuOpen(false);
-      }
+    return () => {
+      document.body.style.overflow = "";
     };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [isMobileMenuOpen]);
 
   return (
-    <>
-      <SearchOverlay open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <MobileMenu open={menuOpen} onClose={() => setMenuOpen(false)} />
+    <Suspense fallback={<HeaderFallback />}>
+      <HeaderWithSearchParams>
+        {({ searchParams, pathname, router }) => {
+          const shouldHideSearch = hideSearchPaths.includes(pathname);
 
-      {/* ── Main Header ─────────────────────────────────────────────────── */}
-      <header
-        className={`
-          fixed top-0 inset-x-0 z-50
-          transition-all duration-400 ease-out
-          ${
-            scrolled || !isHome
-              ? "h-[60px] bg-neutral-950/95 backdrop-blur-xl border-b border-neutral-800"
-              : "h-[72px] bg-transparent border-b border-transparent"
-          }
-        `}
-      >
-        {/* ── Orange top accent stripe ─────────────────────────────────── */}
-        <div
-          className={`absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-orange-600 via-red-500 to-orange-600 transition-opacity duration-400 ${
-            scrolled || !isHome ? "opacity-100" : "opacity-0"
-          }`}
-        />
+          useEffect(() => {
+            const categoryFromUrl = searchParams.get("category");
+            setSelectedCategory(categoryFromUrl);
+          }, [searchParams]);
 
-        {/* Hero gradient scrim */}
-        {isOverHero && (
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              background: "linear-gradient(to bottom, rgba(0,0,0,0.45) 0%, transparent 100%)",
-            }}
-          />
-        )}
+          useEffect(() => {
+            if (shouldHideSearch) return;
+            const interval = setInterval(() => {
+              setIsTransitioning(true);
+              setTimeout(() => {
+                setPlaceholderIndex((prev) => (prev + 1) % placeholders.length);
+                setIsTransitioning(false);
+              }, 300);
+            }, 3000);
+            return () => clearInterval(interval);
+          }, [placeholders.length, shouldHideSearch]);
 
-        <div className="relative h-full max-w-[1440px] mx-auto px-5 sm:px-10">
-          <div className="h-full grid grid-cols-[1fr_auto_1fr] items-center gap-6">
+          useEffect(() => {
+            const fetchCategories = async () => {
+              try {
+                setIsLoading(true);
+                const cached = localStorage.getItem("categories_cache");
+                const cacheTime = localStorage.getItem("categories_cache_time");
+                const now = new Date().getTime();
 
-            {/* ── LEFT ──────────────────────────────────────────────────── */}
-            <div className="flex items-center gap-1">
-              {/* Mobile hamburger */}
-              <button
-                onClick={() => setMenuOpen(true)}
-                aria-label="Open menu"
-                className={`
-                  md:hidden w-10 h-10 flex items-center justify-center rounded
-                  transition-colors duration-200
-                  ${isOverHero ? "text-white/70 hover:text-white hover:bg-white/10" : "text-neutral-400 hover:text-white hover:bg-white/5"}
-                `}
-              >
-                <Menu className="w-[18px] h-[18px]" strokeWidth={2} />
-              </button>
+                if (
+                  cached &&
+                  cacheTime &&
+                  now - parseInt(cacheTime) < 1000 * 60 * 10
+                ) {
+                  setCategories(JSON.parse(cached));
+                } else {
+                  const res = await fetch("/api/categories");
+                  const data = await res.json();
+                  setCategories(data);
+                  localStorage.setItem("categories_cache", JSON.stringify(data));
+                  localStorage.setItem("categories_cache_time", now.toString());
+                }
+              } catch (err) {
+                console.error("Failed to fetch categories:", err);
+              } finally {
+                setIsLoading(false);
+              }
+            };
+            fetchCategories();
+          }, []);
 
-              {/* Desktop nav */}
-              <nav className="hidden md:flex items-center" aria-label="Main navigation">
-                {NAV_LEFT.map((item) => (
-                  <Link
-                    key={item.name}
-                    href={item.href ?? "#"}
-                    className={`
-                      relative px-4 py-1.5
-                      text-[10px] font-black tracking-[0.3em] uppercase
-                      no-underline transition-colors duration-200
-                      group
-                      ${
-                        pathname === item.href
-                          ? "text-orange-500"
-                          : isOverHero
-                          ? "text-white/60 hover:text-white"
-                          : "text-neutral-400 hover:text-white"
-                      }
-                    `}
-                  >
-                    {item.name}
-                    {/* underline — orange slash */}
-                    <span
-                      className={`
-                        absolute bottom-0 left-4 right-4 h-[2px]
-                        bg-orange-500
-                        scale-x-0 group-hover:scale-x-100
-                        transition-transform duration-300 origin-left
-                        ${pathname === item.href ? "scale-x-100" : ""}
-                      `}
-                    />
-                  </Link>
-                ))}
-              </nav>
-            </div>
+          useEffect(() => {
+            if (topSectionRef.current) {
+              setTopSectionHeight(topSectionRef.current.offsetHeight);
+            }
+          }, []);
 
-            {/* ── CENTER LOGO ───────────────────────────────────────────── */}
-            <Link
-              href="/"
-              aria-label="Home"
-              className="flex flex-col items-center gap-0.5 no-underline group"
-            >
-              {/* Logo pill container */}
+          useEffect(() => {
+            const handleScroll = () => {
+              lastScrollY.current = window.scrollY;
+              if (!ticking.current) {
+                window.requestAnimationFrame(() => {
+                  const currentScrollY = lastScrollY.current;
+                  setIsScrolled(currentScrollY > 50);
+                  ticking.current = false;
+                });
+                ticking.current = true;
+              }
+            };
+            window.addEventListener("scroll", handleScroll, { passive: true });
+            return () => window.removeEventListener("scroll", handleScroll);
+          }, []);
+
+          const handleSearch = (e: React.FormEvent) => {
+            e.preventDefault();
+            if (searchQuery.trim()) {
+              const params = new URLSearchParams(searchParams.toString());
+              params.set("q", encodeURIComponent(searchQuery.trim()));
+              if (selectedCategory) params.set("category", selectedCategory);
+              setSearchQuery("");
+              setIsSearchFocused(false);
+              if (pathname === "/products") {
+                window.location.href = `/products?${params.toString()}`;
+              } else {
+                router.push(`/products?${params.toString()}`);
+              }
+            }
+          };
+
+          const handleCategoryClick = (slug: string) => {
+            setSelectedCategory(slug);
+            const params = new URLSearchParams(searchParams.toString());
+            if (slug === selectedCategory) {
+              params.delete("category");
+              setSelectedCategory(null);
+            } else {
+              params.set("category", slug);
+            }
+            if (searchParams.get("q")) params.set("q", searchParams.get("q")!);
+            router.push(`/products?${params.toString()}`);
+          };
+
+          const handleMobileCategoryClick = (slug: string) => {
+            handleCategoryClick(slug);
+            setIsMobileMenuOpen(false);
+          };
+
+          useEffect(() => {
+            const handleClickOutside = (event: MouseEvent) => {
+              if (
+                searchInputRef.current &&
+                !searchInputRef.current.contains(event.target as Node)
+              ) {
+                setIsSearchFocused(false);
+              }
+            };
+            document.addEventListener("mousedown", handleClickOutside);
+            return () =>
+              document.removeEventListener("mousedown", handleClickOutside);
+          }, []);
+
+          const navLinks = [
+            { href: "/", label: "Home", icon: <IconHome size={20} /> },
+            { href: "/products", label: "All Products", icon: <IconPackage size={20} /> },
+            { href: "/cart", label: "Cart", icon: <IconShoppingBag size={20} /> },
+          ];
+
+          return (
+            <>
+              {/* Mobile Menu Overlay */}
               <div
-            
+                className={`fixed inset-0 z-[60] transition-all duration-300 md:hidden ${
+                  isMobileMenuOpen ? "visible" : "invisible"
+                }`}
               >
-                  <Brand />
+                <div
+                  className={`absolute inset-0 bg-black/50 transition-opacity duration-300 ${
+                    isMobileMenuOpen ? "opacity-100" : "opacity-0"
+                  }`}
+                  onClick={() => setIsMobileMenuOpen(false)}
+                />
+
+                <div
+                  className={`absolute top-0 left-0 h-full w-[80vw] max-w-[320px] bg-white shadow-2xl flex flex-col transition-transform duration-300 ease-in-out ${
+                    isMobileMenuOpen ? "translate-x-0" : "-translate-x-full"
+                  }`}
+                >
+                  <div className="flex items-center justify-between px-4 py-4 border-b border-gray-200">
+                    <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
+                      <Brand />
+                    </Link>
+                    <button
+                      onClick={() => setIsMobileMenuOpen(false)}
+                      className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 transition-colors"
+                      aria-label="Close menu"
+                    >
+                      <IconX size={20} />
+                    </button>
+                  </div>
+
+                  <div className="flex-1 overflow-y-auto">
+                    <nav className="px-3 pt-4 pb-2">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-widest px-2 mb-3">
+                        Navigation
+                      </p>
+                      {navLinks.map((link) => (
+                        <Link
+                          key={link.href}
+                          href={link.href}
+                          onClick={() => setIsMobileMenuOpen(false)}
+                          className={`flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                            pathname === link.href
+                              ? "bg-slate-100 text-slate-900 font-medium"
+                              : "text-gray-600 hover:bg-gray-50"
+                          }`}
+                        >
+                          <span
+                            className={
+                              pathname === link.href
+                                ? "text-slate-600"
+                                : "text-gray-400"
+                            }
+                          >
+                            {link.icon}
+                          </span>
+                          <span className="flex-1 text-sm">{link.label}</span>
+                          <IconChevronRight size={16} className="text-gray-300" />
+                        </Link>
+                      ))}
+                    </nav>
+
+                    <div className="mx-4 border-t border-gray-100 my-3" />
+
+                    <div className="px-3 pt-3 pb-4">
+                      <p className="text-xs font-medium text-gray-500 uppercase tracking-widest px-2 mb-3">
+                        Categories
+                      </p>
+
+                      <button
+                        onClick={() => handleMobileCategoryClick("")}
+                        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-2 transition-colors ${
+                          !selectedCategory
+                            ? "bg-slate-100 text-slate-900 font-medium"
+                            : "text-gray-600 hover:bg-gray-50"
+                        }`}
+                      >
+                        <IconShoppingBag size={18} />
+                        <span className="flex-1 text-sm text-left">For you</span>
+                      </button>
+
+                      {isLoading
+                        ? [...Array(6)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="flex items-center gap-3 px-3 py-2.5 mb-1"
+                            >
+                              <div className="w-8 h-8 rounded-md bg-gray-200 animate-pulse" />
+                              <div className="h-4 bg-gray-200 rounded animate-pulse flex-1" />
+                            </div>
+                          ))
+                        : categories.map((category: any) => (
+                            <button
+                              key={category._id}
+                              onClick={() =>
+                                handleMobileCategoryClick(category.slug)
+                              }
+                              className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors ${
+                                selectedCategory === category.slug
+                                  ? "bg-slate-100 text-slate-900 font-medium"
+                                  : "text-gray-600 hover:bg-gray-50"
+                              }`}
+                            >
+                              <div className="w-8 h-8 rounded-md overflow-hidden bg-gray-100">
+                                {category.image ? (
+                                  <img
+                                    src={category.image}
+                                    alt={category.name}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <IconShoppingBag size={16} className="text-gray-400" />
+                                  </div>
+                                )}
+                              </div>
+                              <span className="flex-1 text-sm text-left">
+                                {category.name}
+                              </span>
+                            </button>
+                          ))}
+                    </div>
+                  </div>
+
+                  <div className="px-4 py-3 border-t border-gray-100 bg-gray-50">
+                    <p className="text-xs text-gray-500 text-center font-medium">
+                      Trending Store Kerala
+                    </p>
+                  </div>
+                </div>
               </div>
-              {/* performance tagline */}
-              <span
-                className={`
-                  text-[7px] font-black tracking-[0.45em] uppercase transition-colors duration-300
-                  ${isOverHero ? "text-white/30" : "text-neutral-600 group-hover:text-orange-500/70"}
-                `}
+
+              {/* Main Header */}
+              <header
+                ref={headerRef}
+                className="mx-auto fixed top-0 left-0 right-0 bg-white z-50 md:left-1/2 md:-translate-x-1/2 md:w-full border-b border-gray-200"
               >
-                ONLINE · STORE
-              </span>
-            </Link>
+                {/* Top section */}
+                <div
+                  ref={topSectionRef}
+                  className="transition-all duration-500 ease-in-out transform-gpu will-change-transform"
+                  style={{
+                    transform: isScrolled ? "translateY(-100%)" : "translateY(0)",
+                    opacity: isScrolled ? 0 : 1,
+                    marginBottom: isScrolled ? `-${topSectionHeight}px` : 0,
+                  }}
+                >
+                  <div className="px-4 py-1 flex items-center bg-white gap-3 -b ">
+                    <button
+                      className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-gray-700"
+                      onClick={() => setIsMobileMenuOpen(true)}
+                      aria-label="Open menu"
+                    >
+                      <IconMenu size={22} />
+                    </button>
 
-            {/* ── RIGHT ACTIONS ─────────────────────────────────────────── */}
-            <div className="flex items-center justify-end gap-0.5">
-              {/* Search */}
-              <button
-                onClick={() => setSearchOpen(true)}
-                aria-label="Search"
-                className={`
-                  w-10 h-10 flex items-center justify-center rounded
-                  transition-all duration-200
-                  ${isOverHero ? "text-white/60 hover:text-white hover:bg-white/10" : "text-neutral-400 hover:text-white hover:bg-neutral-800"}
-                `}
-              >
-                <Search className="w-[17px] h-[17px]" strokeWidth={2} />
-              </button>
+                    <div className="flex-1 flex justify-center">
+                      <Link
+                        href="/"
+                        className="transition-all duration-300 hover:opacity-80 z-10"
+                      >
+                        <Brand />
+                      </Link>
+                    </div>
 
-              {/* Cart */}
-              <Link
-                href="/cart"
-                aria-label="Shopping cart"
-                className={`
-                  relative w-10 h-10 flex items-center justify-center rounded
-                  transition-all duration-200 no-underline group
-                  ${isOverHero ? "text-white/60 hover:text-white hover:bg-white/10" : "text-neutral-400 hover:text-white hover:bg-neutral-800"}
-                `}
-              >
-                <ShoppingBag className="w-[17px] h-[17px]" strokeWidth={2} />
-                {/* Cart badge */}
-                <span className="absolute top-2 right-2 w-[5px] h-[5px] rounded-full bg-orange-500 group-hover:scale-125 transition-transform duration-200" />
-              </Link>
+                    <div className="flex-shrink-0">
+                      <Link
+                        href="/cart"
+                        className="transition-all duration-300 flex items-center gap-2"
+                      >
+                        <button className="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors text-gray-700">
+                          <IconShoppingBag size={22} />
+                        </button>
+                      </Link>
+                    </div>
+                  </div>
+                </div>
 
-              {/* CTA — desktop only */}
-              <Link
-                href="/products"
-                className={`
-                  hidden lg:flex items-center gap-2
-                  ml-3 px-4 h-8 rounded-sm
-                  text-[9px] font-black tracking-[0.3em] uppercase
-                  no-underline transition-all duration-200
-                  bg-orange-500 hover:bg-orange-400 text-white
-                  group
-                `}
-              >
-                <span>Shop Now</span>
-                <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform duration-200" strokeWidth={2.5} />
-              </Link>
-            </div>
-          </div>
-        </div>
+                {/* Search and Categories section */}
+                {!shouldHideSearch && (
+                  <div className="search-portion md:flex items-center justify-between flex-row-reverse px-4 py-3 bg-white">
+                    <form onSubmit={handleSearch} className="w-full md:w-auto">
+                      <div
+                        className={`border flex rounded-lg items-center bg-white px-3 py-2 transition-all duration-300 ${
+                          isSearchFocused
+                            ? "border-orange-400 shadow-sm ring-1 ring-slate-200"
+                            : "border-gray-300 hover:border-gray-400"
+                        }`}
+                      >
+                        <IconSearch
+                          size={18}
+                          className={`transition-all duration-300 ${
+                            isSearchFocused
+                              ? "text-orange-600"
+                              : "text-gray-400"
+                          }`}
+                        />
+                        <div className="relative w-full overflow-hidden">
+                          <input
+                            ref={searchInputRef}
+                            type="text"
+                            value={searchQuery}
+                            onChange={(e) => setSearchQuery(e.target.value)}
+                            onFocus={() => setIsSearchFocused(true)}
+                            onBlur={() => setIsSearchFocused(false)}
+                            className="w-full px-2 py-1.5 text-sm rounded-lg focus:outline-none bg-transparent placeholder-transparent"
+                          />
+                          <div
+                            className={`absolute left-2 top-0 pointer-events-none flex items-center h-full transition-all duration-600 ease-in-out ${
+                              searchQuery ? "opacity-0" : "opacity-100"
+                            }`}
+                          >
+                            <span
+                              className={`text-sm text-gray-400 transition-all duration-600 ease-in-out transform ${
+                                isTransitioning
+                                  ? "translate-y-8 opacity-0"
+                                  : "translate-y-0 opacity-100"
+                              }`}
+                              key={placeholderIndex}
+                            >
+                              {placeholders[placeholderIndex]}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    </form>
 
-        {/* ── Bottom accent line (scrolled) ────────────────────────────── */}
-        <div
-          className={`
-            absolute bottom-0 left-0 h-[1px] bg-gradient-to-r from-transparent via-orange-500/30 to-transparent
-            transition-all duration-500
-            ${scrolled || !isHome ? "w-full opacity-100" : "w-0 opacity-0"}
-          `}
-        />
-      </header>
+                    {/* Categories section */}
+                    <div className="categories pt-3 pb-1 flex overflow-x-auto gap-2 scrollbar-hide md:pt-0">
+                      <button
+                        onClick={() => handleCategoryClick("")}
+                        className={`flex p-2 flex-col justify-center items-center rounded-lg transition-all duration-300 min-w-[70px] text-sm font-medium ${
+                          !selectedCategory
+                            ? "bg-slate-100 text-slate-900 "
+                            : "bg-gray-50 text-gray-700 hover:bg-gray-100"
+                        }`}
+                      >
+                        <div
+                          className={`transition-all duration-300 ${
+                            isScrolled
+                              ? "h-0 w-0 opacity-0 overflow-hidden"
+                              : "h-auto w-auto opacity-100"
+                          }`}
+                        >
+                          <IconShoppingBag size={20} />
+                        </div>
+                        <span
+                          className={`text-xs transition-all duration-300 ${
+                            isScrolled ? "mt-0" : "mt-1"
+                          }`}
+                        >
+                          For you
+                        </span>
+                      </button>
 
-      {!isHome && <div className="h-[60px]" aria-hidden="true" />}
-    </>
+                      {isLoading
+                        ? [...Array(5)].map((_, i) => (
+                            <div
+                              key={i}
+                              className="flex p-2 flex-col justify-center items-center rounded-lg min-w-[70px]"
+                            >
+                              <div
+                                className={`bg-gray-200 rounded-md transition-all duration-300 ${
+                                  isScrolled ? "h-0 w-0" : "h-12 w-12"
+                                } animate-pulse`}
+                              ></div>
+                              <div
+                                className={`h-3 bg-gray-200 rounded transition-all duration-300 ${
+                                  isScrolled ? "w-8 mt-0" : "w-12 mt-1"
+                                } animate-pulse`}
+                              ></div>
+                            </div>
+                          ))
+                        : categories.map((category: any) => (
+                            <button
+                              key={category._id}
+                              onClick={() =>
+                                handleCategoryClick(category.slug)
+                              }
+                              className={`flex p-2 flex-col justify-center items-center rounded-lg transition-all duration-300 min-w-[70px] text-sm font-medium ${
+                                selectedCategory === category.slug
+                                  ? "bg-slate-100 text-slate-900 shadow-sm scale-105"
+                                  : "bg-gray-50 text-gray-700 hover:bg-gray-100 hover:scale-105"
+                              }`}
+                            >
+                              <div
+                                className={`rounded-md overflow-hidden transition-all duration-300 ${
+                                  isScrolled
+                                    ? "h-0 w-0 opacity-0"
+                                    : "h-12 w-12 opacity-100"
+                                }`}
+                              >
+                                {category.image ? (
+                                  <img
+                                    src={category.image}
+                                    alt={category.name}
+                                    className="w-12 h-12 object-cover rounded-md"
+                                  />
+                                ) : (
+                                  <div className="w-12 h-12 bg-gray-200 flex items-center justify-center rounded-md">
+                                    <IconShoppingBag
+                                      size={20}
+                                      className="text-gray-400"
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                              <span
+                                className={`text-xs transition-all duration-300 ${
+                                  isScrolled ? "mt-0 font-semibold" : "mt-1"
+                                } truncate w-full text-center`}
+                              >
+                                {category.name}
+                              </span>
+                            </button>
+                          ))}
+                    </div>
+                  </div>
+                )}
+              </header>
+
+              {/* Dynamic spacer */}
+              <div
+                className="transition-all duration-500 ease-in-out"
+                style={{
+                  height: isScrolled
+                    ? shouldHideSearch
+                      ? "60px"
+                      : "100px"
+                    : `${(topSectionHeight || 60) + (shouldHideSearch ? 0 : 160)}px`,
+                }}
+              />
+            </>
+          );
+        }}
+      </HeaderWithSearchParams>
+    </Suspense>
   );
 }
+
+function HeaderFallback() {
+  return (
+    <header className="mx-auto fixed top-0 left-0 right-0 bg-white z-50 md:left-1/2 md:-translate-x-1/2 md:w-full border-b ">
+      <div className="px-4 py-3 flex items-center justify-between">
+        <Button variant="ghost" className="w-full max-w-[600px]">
+          <Link href={"/"}>
+            <Brand />
+          </Link>
+        </Button>
+        <Link href="/cart" className="flex items-center gap-2">
+          <Button variant="ghost" size="icon">
+            <IconShoppingBag size={20} />
+          </Button>
+        </Link>
+      </div>
+      <div style={{ height: "60px" }} />
+    </header>
+  );
+}
+
+export default Header;
