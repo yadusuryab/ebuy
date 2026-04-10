@@ -172,7 +172,7 @@ export default function CheckoutPage() {
         <div className="max-w-5xl mx-auto lg:flex lg:min-h-[calc(100vh-45px)]">
 
           {/* ══ LEFT PANEL — dark navy (order summary) ══════════════════ */}
-          <div className="bg-primary lg:w-[380px] lg:min-h-full lg:shrink-0">
+          <div className="bg-orange-500 lg:w-[380px] lg:min-h-full lg:shrink-0">
 
             {/* Mobile: collapsible summary pill */}
             <button
@@ -228,7 +228,7 @@ export default function CheckoutPage() {
                 </div>
                 <div className="flex justify-between text-white/50">
                   <span>{paymentMethod === "online" ? "Shipping" : "COD charges"}</span>
-                  <span className={shippingCharges === 0 ? "text-[#22c55e] font-medium" : "text-white/70"}>
+                  <span className={shippingCharges === 0 ? "text-white font-medium" : "text-white/70"}>
                     {shippingCharges === 0 ? "Free" : `₹${shippingCharges}`}
                   </span>
                 </div>

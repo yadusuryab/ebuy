@@ -95,7 +95,7 @@ export function Preloader() {
           flexDirection: "column",
           alignItems: "center",
           justifyContent: "center",
-          background: "#0c0c0c",
+          background: "#fff",
           transition: "opacity 700ms ease",
           opacity: hiding ? 0 : 1,
           pointerEvents: hiding ? "none" : "auto",
