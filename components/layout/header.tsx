@@ -54,6 +54,9 @@ function Header() {
     "/checkout/success",
     "/account",
     "/wishlist",
+    "/product",
+    "/products"
+
   ];
 
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
