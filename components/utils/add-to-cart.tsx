@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { ShoppingCart, Check, Loader2, Zap, ShoppingBag } from "lucide-react";
+import { Button } from "../ui/button";
 
 export type CartItem = {
   _id: string;
@@ -232,20 +233,20 @@ const AddToCartButton = ({
 
         {/* Add to Cart / View in Cart / Out of Stock */}
         {isOutOfStock ? (
-          <button className="atc-btn atc-btn-disabled" disabled>
+          <Button  disabled>
             Out of Stock
-          </button>
+          </Button>
         ) : inCart ? (
-          <button
-            className="atc-btn atc-btn-incart"
+          <Button
+          variant={'outline'}
             onClick={() => router.push("/cart")}
           >
             <Check size={16} strokeWidth={2} className="check-icon" />
             View in Cart
-          </button>
+          </Button>
         ) : (
-          <button
-            className={`atc-btn atc-btn-primary ${justAdded ? "just-added" : ""}`}
+          <Button
+          variant={'secondary'}
             onClick={() => addToCart(false)}
             disabled={isLoading || disabled}
           >
@@ -255,23 +256,20 @@ const AddToCartButton = ({
               <ShoppingCart size={16} strokeWidth={1.75} />
             )}
             {isLoading ? "Adding..." : "Add to Cart"}
-          </button>
+          </Button>
         )}
 
         {/* Buy Now */}
         {showBuyNow && (
-          <button
-            className="atc-btn atc-btn-buynow"
+          <Button
             onClick={handleBuyNow}
             disabled={isBuyNowLoading || disabled || isOutOfStock}
           >
-            {isBuyNowLoading ? (
+            {isBuyNowLoading && (
               <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <Zap size={16} strokeWidth={1.75} />
-            )}
+            ) }
             {isBuyNowLoading ? "Processing..." : "Buy Now"}
-          </button>
+          </Button>
         )}
 
       </div>

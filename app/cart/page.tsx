@@ -5,6 +5,7 @@ import Link from "next/link";
 import React, { useEffect, useState } from "react";
 import { Trash2, X, Plus, Minus, ArrowRight, ShoppingBag, Lock, Zap } from "lucide-react";
 import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
 
 function CartPage() {
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -88,7 +89,7 @@ function CartPage() {
             <Zap className="w-3 h-3 text-orange-500" strokeWidth={2.5} />
             <span className="text-[9px] font-black tracking-[0.4em] uppercase text-orange-500">Cart Empty</span>
           </div>
-          <h2 className="font-['Bebas_Neue',sans-serif] text-3xl tracking-widest text-neutral-900 mb-1">
+          <h2 className=" text-3xl tracking-widest text-neutral-900 mb-1">
             Nothing Here Yet
           </h2>
           <p className="text-[11px] font-semibold tracking-wider uppercase text-neutral-400 mb-7">
@@ -128,23 +129,22 @@ function CartPage() {
           <div className="flex items-center justify-between mb-7">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <Zap className="w-3 h-3 text-orange-500" strokeWidth={2.5} />
-                <span className="text-[9px] font-black tracking-[0.4em] uppercase text-orange-500">Your Order</span>
+                <span className="text-sm font-black tracking-tighter uppercase text-primary">Shopping</span>
               </div>
-              <h1 className="font-['Bebas_Neue',sans-serif] text-4xl tracking-widest text-neutral-900 leading-none">
-                Shopping Cart
+              <h1 className=" text-3xl tracking-tighter font-bold leading-none">
+                 Cart
               </h1>
-              <p className="text-[10px] font-black tracking-[0.25em] uppercase text-neutral-400 mt-1">
+              <p className="text-xs  uppercase text-muted-foreground mt-1">
                 {cart.length} item{cart.length !== 1 ? "s" : ""}
               </p>
             </div>
-            <button
+            <Button
               onClick={clearCart}
-              className="flex items-center gap-1.5 text-[9px] font-black tracking-[0.25em] uppercase text-red-500 hover:text-red-400 px-3 py-2 border border-red-200 hover:border-red-400 rounded-sm transition-all duration-150"
+              variant={'destructive'}
             >
               <Trash2 className="w-3.5 h-3.5" strokeWidth={2} />
               Clear All
-            </button>
+            </Button>
           </div>
 
           <div className="lg:grid lg:grid-cols-[1fr_360px] lg:gap-6 lg:items-start">
@@ -191,12 +191,12 @@ function CartPage() {
                       {/* Variants */}
                       <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
                         {item.size && (
-                          <span className="text-[9px] font-black tracking-[0.2em] uppercase text-neutral-500 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-sm">
+                          <span className="text-[9px] font-black tracking-tight uppercase text-neutral-500 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-sm">
                             Size: {item.size}
                           </span>
                         )}
                         {item.color && (
-                          <span className="text-[9px] font-black tracking-[0.2em] uppercase text-neutral-500 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-sm">
+                          <span className="text-[9px] font-black tracking-tight uppercase text-neutral-500 bg-neutral-100 border border-neutral-200 px-2 py-0.5 rounded-sm">
                             {item.color}
                           </span>
                         )}
@@ -227,7 +227,7 @@ function CartPage() {
 
                         {/* Item total */}
                         <div className="text-right">
-                          <p className="font-['Bebas_Neue',sans-serif] text-xl tracking-widest text-neutral-900">
+                          <p className=" text-xl tracking-widest text-neutral-900">
                             ₹{((item.salesPrice ?? item.price) * item.cartQty)?.toLocaleString("en-IN")}
                           </p>
                           {item.cartQty > 1 && (
@@ -245,39 +245,37 @@ function CartPage() {
 
             {/* ── Order Summary ─────────────────────────────────────────── */}
             <div className="lg:sticky lg:top-6">
-              <div className="bg-neutral-950 border border-neutral-800 overflow-hidden">
+              <div className="overflow-hidden">
 
                 {/* Orange top stripe */}
-                <div className="w-full h-[3px] bg-gradient-to-r from-orange-600 via-red-500 to-orange-600" />
 
                 {/* Header */}
-                <div className="px-5 py-4 border-b border-neutral-800 flex items-center gap-2">
-                  <Zap className="w-3 h-3 text-orange-500" strokeWidth={2.5} />
-                  <h2 className="font-['Bebas_Neue',sans-serif] text-[17px] tracking-[0.2em] text-white">
+                <div className="px-5 py-4 border-b  flex items-center gap-2">
+                  <h2 className=" text-lg tracking-tighter font-bold">
                     Order Summary
                   </h2>
                 </div>
 
                 <div className="px-5 py-4 space-y-3">
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black tracking-[0.25em] uppercase text-neutral-500">
+                    <span className="text-sm font-black tracking-tight uppercase text-neutral-500">
                       Subtotal ({cart.length} item{cart.length !== 1 ? "s" : ""})
                     </span>
-                    <span className="text-[13px] font-black tracking-wide text-neutral-300">
+                    <span className="text-md font-bold tracking-wide">
                       ₹{subtotal?.toLocaleString("en-IN")}
                     </span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="text-[10px] font-black tracking-[0.25em] uppercase text-neutral-500">
+                    <span className="text-sm font-black tracking-tight uppercase text-neutral-500">
                       Shipping
                     </span>
-                    <span className="text-[10px] font-black tracking-[0.25em] uppercase text-orange-500">
-                      Free
+                    <span className="text-sm font-black tracking-tight  text-primary">
+                      Free for Prepaid Orders
                     </span>
                   </div>
                   <div className="pt-3 border-t border-neutral-800 flex justify-between items-center">
-                    <span className="text-[10px] font-black tracking-[0.3em] uppercase text-neutral-400">Total</span>
-                    <span className="font-['Bebas_Neue',sans-serif] text-3xl tracking-widest text-white">
+                    <span className="text-sm font-black tracking-[0.3em] uppercase text-neutral-400">Total</span>
+                    <span className=" text-xl tracking-tighter font-bold ">
                       ₹{subtotal?.toLocaleString("en-IN")}
                     </span>
                   </div>
@@ -286,22 +284,22 @@ function CartPage() {
                 {/* CTAs */}
                 <div className="px-5 pb-5 space-y-2">
                   <Link href="/checkout" className="block no-underline">
-                    <button className="group w-full h-12 bg-orange-500 hover:bg-orange-400 text-white text-[9px] font-black tracking-[0.3em] uppercase rounded-sm transition-all duration-200 flex items-center justify-center gap-2.5 active:scale-[0.98]">
+                    <Button className="w-full" size={'lg'}>
                       <Lock className="w-3.5 h-3.5" strokeWidth={2.5} />
                       Proceed to Checkout
                       <ArrowRight className="w-3.5 h-3.5 group-hover:translate-x-0.5 transition-transform duration-200" strokeWidth={2.5} />
-                    </button>
+                    </Button>
                   </Link>
                   <Link href="/products" className="block no-underline">
-                    <button className="w-full h-10 border border-neutral-700 hover:border-neutral-500 text-[9px] font-black tracking-[0.3em] uppercase text-neutral-500 hover:text-white rounded-sm transition-all duration-200 active:scale-[0.98]">
+                    <Button variant={'outline'} className="w-full">
                       Continue Shopping
-                    </button>
+                    </Button>
                   </Link>
 
                   {/* Trust line */}
                   <div className="flex items-center justify-center gap-1.5 pt-1">
                     <Lock className="w-3 h-3 text-neutral-700" strokeWidth={2} />
-                    <span className="text-[9px] font-black tracking-[0.2em] uppercase text-neutral-700">
+                    <span className="text-[9px] font-black tracking-tight uppercase text-neutral-700">
                       Secure & Encrypted Checkout
                     </span>
                   </div>

@@ -622,7 +622,7 @@ const MediaCarousel: React.FC<MediaCarouselProps> = ({
         </div>
 
         {/* Navigation Arrows */}
-        {media.length > 1 && (
+        {/* {media.length > 1 && (
           <>
             <button
               onClick={() => onThumbClick(Math.max(0, currentIndex - 1))}
@@ -645,7 +645,7 @@ const MediaCarousel: React.FC<MediaCarouselProps> = ({
               </svg>
             </button>
           </>
-        )}
+        )} */}
       </div>
 
       {/* Media Info */}

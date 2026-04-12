@@ -3,6 +3,7 @@
 import React, { useEffect, useRef, useState } from 'react'
 import { ArrowRight, Zap } from 'lucide-react'
 import Link from 'next/link'
+import { Button } from '../ui/button'
 
 export type Category = {
   name: string
@@ -51,7 +52,7 @@ function CategoryRow({
       <div
         className="relative w-full overflow-hidden"
         style={{
-          height: tall ? '480px' : '260px',
+          height: tall ? '260px' : '200px',
           opacity: visible ? 1 : 0,
           transform: visible ? 'translateY(0)' : 'translateY(28px)',
           transition: `opacity 0.6s ease ${index * 100}ms, transform 0.6s ease ${index * 100}ms`,
@@ -78,14 +79,14 @@ function CategoryRow({
         />
 
         {/* Orange left accent bar */}
-        <div
+        {/* <div
           className="absolute left-0 top-0 bottom-0 w-[3px] bg-orange-500 transition-opacity duration-300"
           style={{ opacity: hovered ? 1 : 0 }}
-        />
+        /> */}
 
         {/* Index — top left */}
         <div
-          className="absolute top-5 left-5 font-black text-[10px] tracking-[0.3em] text-orange-500 transition-opacity duration-300"
+          className="absolute top-5 left-5 font-black text-[10px] tracking-[0.3em] text-white transition-opacity duration-300"
           style={{ opacity: visible ? 1 : 0, transitionDelay: `${index * 100 + 200}ms` }}
         >
           {String(index + 1).padStart(2, '0')}
@@ -94,7 +95,7 @@ function CategoryRow({
         {/* Bottom text */}
         <div className="absolute bottom-0 left-0 right-0 p-6">
           <h3
-            className="font-['Bebas_Neue',sans-serif] text-white leading-none tracking-widest m-0 transition-transform duration-400"
+            className=" text-white leading-none tracking-tighter m-0 transition-transform duration-400"
             style={{
               fontSize: tall ? '52px' : '32px',
               transform: hovered ? 'translateY(-4px)' : 'translateY(0)',
@@ -110,7 +111,7 @@ function CategoryRow({
               transform: hovered ? 'translateY(0)' : 'translateY(4px)',
             }}
           >
-            <span className="text-[9px] font-black tracking-[0.35em] uppercase text-orange-400">
+            <span className="text-[9px] font-black tracking-[0.35em] uppercase text-muted-foreground">
               {cat.productCount != null ? `${cat.productCount} pieces` : 'Explore'}
             </span>
 
@@ -183,7 +184,7 @@ function CategorySection() {
       <section ref={sectionRef} className="bg-white py-16 relative">
 
         {/* Orange top border */}
-        <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-orange-600 via-red-500 to-orange-600" />
+        <div className="absolute top-0 left-0 right-0 h-[3px] bg-primary" />
 
         {/* ── Header ───────────────────────────────────────────────────── */}
         <div className="px-6 mb-8 flex items-end justify-between">
@@ -193,16 +194,15 @@ function CategorySection() {
               className="flex items-center gap-2 mb-3 transition-all duration-500"
               style={{ opacity: visible ? 1 : 0, transform: visible ? 'translateY(0)' : 'translateY(8px)' }}
             >
-              <Zap className="w-3 h-3 text-orange-500" strokeWidth={2.5} />
-              <span className="text-[9px] font-black tracking-[0.4em] uppercase text-orange-500">
-                Collections
+              <span className="text-sm tracking-tighter uppercase text-primary">
+                Find by
               </span>
-              <div className="h-px w-8 bg-orange-500/30" />
+              <div className="h-px w-8 bg-primary" />
             </div>
 
             {/* Headline */}
             <h2
-              className="font-['Bebas_Neue',sans-serif] text-neutral-900 leading-none tracking-widest m-0 transition-all duration-500"
+              className=" leading-none tracking-tighter m-0 transition-all duration-500"
               style={{
                 fontSize: 'clamp(32px, 6vw, 48px)',
                 opacity: visible ? 1 : 0,
@@ -210,19 +210,17 @@ function CategorySection() {
                 transitionDelay: '70ms',
               }}
             >
-              Shop by Category
+            Category
             </h2>
           </div>
 
           {/* View all */}
           <Link
             href="/products"
-            className="group inline-flex items-center gap-2 px-5 h-9 bg-neutral-900 hover:bg-orange-500 text-white text-[9px] font-black tracking-[0.3em] uppercase rounded-sm transition-all duration-200 no-underline"
-            style={{ opacity: visible ? 1 : 0, transition: 'opacity 0.5s ease 0.15s, background 0.2s' }}
           >
-            View All
+           <Button> View All
             <ArrowRight size={12} className="transition-transform duration-200 group-hover:translate-x-0.5" strokeWidth={2.5} />
-          </Link>
+          </Button></Link>
         </div>
 
         {/* ── Grid ─────────────────────────────────────────────────────── */}

@@ -390,7 +390,7 @@ const Hero: React.FC<{ className?: string }> = ({ className }) => {
               {current?.title && (
                 <h1
                   key={`title-${selectedIndex}`}
-                  className="text-5xl lg:text-[4.5rem] font-light text-white leading-[0.92] tracking-tight mb-5"
+                  className="text-2xl lg:text-[4.5rem] font-bold t text-white leading-[0.92] tracking-tight mb-5"
                   style={{ animation: textVisible ? 'fadeSlideUp 0.65s cubic-bezier(0.16,1,0.3,1) 0.12s both' : 'none', opacity: textVisible ? 1 : 0 }}
                 >
                   {current.title}
@@ -453,12 +453,14 @@ const Hero: React.FC<{ className?: string }> = ({ className }) => {
         </div>
 
         {/* ── Mobile text panel — below image ── */}
-        <div className="md:hidden bg-white px-5 pt-5 pb-6">
+        <div className="md:hidden bg-white  p-2 ">
 
+         <div className="flex justify-between">
+         <div>
           {current?.title && (
             <h2
               key={`m-title-${selectedIndex}`}
-              className="text-[2rem] leading-[1.05] font-light text-neutral-900 tracking-tight"
+              className="text-xl font-bold  tracking-tighter"
               style={{ animation: 'fadeSlideUp 0.55s cubic-bezier(0.16,1,0.3,1) both' }}
             >
               {current.title}
@@ -468,12 +470,13 @@ const Hero: React.FC<{ className?: string }> = ({ className }) => {
           {current?.subtitle && (
             <p
               key={`m-sub-${selectedIndex}`}
-              className="text-sm text-neutral-400 mt-2 leading-relaxed font-light"
+              className="text-sm text-muted-foreground leading-relaxed font-semibold"
               style={{ animation: 'fadeSlideUp 0.55s cubic-bezier(0.16,1,0.3,1) 0.1s both' }}
             >
               {current.subtitle}
             </p>
           )}
+          </div>
 
           {ctaLabel && ctaHref && (
             <div
@@ -492,10 +495,11 @@ const Hero: React.FC<{ className?: string }> = ({ className }) => {
               </Link>
             </div>
           )}
+         </div>
 
           {/* Mobile bottom bar — slide nav */}
           {banners.length > 1 && (
-            <div className="flex items-center justify-between mt-6 pt-5 border-t border-neutral-100">
+            <div className="flex items-center justify-between mt-1">
               <span className="font-mono text-[11px] text-neutral-300 tracking-wider">
                 <AnimatedNumber value={selectedIndex} />
                 <span className="mx-1.5 text-neutral-200">·</span>

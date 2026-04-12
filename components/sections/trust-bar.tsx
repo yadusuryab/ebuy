@@ -50,16 +50,11 @@ export default function TrustBar() {
         }
       `}</style>
 
-      <section className="px-4 py-5 bg-white">
-        <div ref={ref} className="relative bg-neutral-950 overflow-hidden border-t-[3px] border-orange-500">
+      <section className="px-4 py-5 ">
+        <div ref={ref} className="relative bg-white overflow-hidden ">
 
           {/* Diagonal grid texture */}
-          <div
-            className="absolute inset-0 pointer-events-none"
-            style={{
-              backgroundImage: "repeating-linear-gradient(45deg, rgba(255,255,255,0.012) 0px, rgba(255,255,255,0.012) 1px, transparent 1px, transparent 8px)",
-            }}
-          />
+      
 
           <div className="grid grid-cols-2 md:grid-cols-4">
             {badges.map(({ icon: Icon, title, desc, tag }, i) => {
@@ -70,7 +65,7 @@ export default function TrustBar() {
               return (
                 <div
                   key={i}
-                  className={`trust-item ${visible ? "in" : ""} relative flex flex-col gap-3.5 p-6 md:p-7 cursor-default transition-colors duration-300 ${borderR} ${borderB} ${isHov ? "bg-orange-500/5" : "bg-transparent"}`}
+                  className={`trust-item ${visible ? "in" : ""} bg-secondary relative flex flex-col gap-3.5 p-6 md:p-7 cursor-default transition-colors duration-300  ${isHov ? "bg-orange-500/5" : "bg-transparent"}`}
                   style={{ animationDelay: `${i * 90}ms` }}
                   onMouseEnter={() => setHovered(i)}
                   onMouseLeave={() => setHovered(null)}
@@ -102,15 +97,12 @@ export default function TrustBar() {
                   {/* Text */}
                   <div className="flex flex-col gap-1.5">
                     <div className="flex items-center gap-2">
-                      <div
-                        className="trust-slash h-[2px] bg-orange-500 rounded-sm shrink-0"
-                        style={{ animationDelay: `${i * 90 + 200}ms` }}
-                      />
-                      <p className="font-['Bebas_Neue',sans-serif] text-[15px] tracking-[0.15em] text-white m-0 leading-none">
+                    
+                      <p className=" text-md font-bold tracking-tighter m-0 leading-none">
                         {title}
                       </p>
                     </div>
-                    <p className="text-[9.5px] font-semibold tracking-wider uppercase text-neutral-600 m-0 leading-relaxed pl-7">
+                    <p className="text-[9.5px] font-semibold tracking-wider uppercase text-mute m-0 leading-relaxed ">
                       {desc}
                     </p>
                   </div>

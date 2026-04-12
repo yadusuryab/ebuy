@@ -14,7 +14,7 @@ export default function Brand({ className }: any) {
       <div className="flex flex-col justify-center">
         <span
       
-          className={`text-2xl uppercase  ${babs.className} `}
+          className={`text-2xl   font-bold tracking-tighter `}
         >
           {brandName}
         </span>

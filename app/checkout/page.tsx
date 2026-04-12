@@ -11,6 +11,7 @@ import { z } from "zod";
 import { checkoutSchema } from "@/lib/validations";
 import { QRCodeCanvas } from "qrcode.react";
 import Link from "next/link";
+import { Button } from "@/components/ui/button";
 
 type CartItem = {
   _id: string;
@@ -42,7 +43,7 @@ function Field({
 const inputCls = (err?: string) =>
   `w-full h-10 px-3 text-sm border rounded-md bg-white outline-none
    transition-all duration-150 text-[#111827] placeholder:text-[#d1d5db]
-   focus:border-[#2563eb] focus:ring-2 focus:ring-[#2563eb]/10
+   focus:border-primary focus:ring-2 focus:ring-primary/10
    ${err ? "border-red-400 bg-red-50/30" : "border-[#e5e7eb] hover:border-[#9ca3af]"}`;
 
 export default function CheckoutPage() {
@@ -131,7 +132,7 @@ export default function CheckoutPage() {
           <h2 className="text-lg font-semibold text-[#111827] mb-1">Your cart is empty</h2>
           <p className="text-sm text-[#6b7280] mb-5">Add some products before checking out</p>
           <button onClick={() => router.push("/products")}
-            className="px-5 py-2.5 bg-[#2563eb] text-white text-sm font-medium rounded-lg hover:bg-[#1d4ed8] transition-colors">
+            className="px-5 py-2.5 bg-primary text-white text-sm font-medium rounded-lg hover:bg-[#1d4ed8] transition-colors">
             Continue Shopping
           </button>
         </div>
@@ -158,10 +159,10 @@ export default function CheckoutPage() {
         {/* ── Top secure bar ── */}
         <div className="bg-white border-b border-[#e5e7eb] px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 bg-[#1e3a5f] rounded flex items-center justify-center">
-              <span className="text-white text-[9px] font-bold tracking-wider">W</span>
+            <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
+              <span className="text-white text-[9px] font-bold tracking-wider">E</span>
             </div>
-            <span className="text-xs font-semibold text-[#374151]">{process.env.NEXT_PUBLIC_APP_NAME || "WOKO"}</span>
+            <span className="text-xs font-semibold text-[#374151]">{process.env.NEXT_PUBLIC_APP_NAME || "EBUY"}</span>
           </div>
           <div className="flex items-center gap-1.5 text-[#22c55e]">
             <Lock className="w-3 h-3" />
@@ -172,7 +173,7 @@ export default function CheckoutPage() {
         <div className="max-w-5xl mx-auto lg:flex lg:min-h-[calc(100vh-45px)]">
 
           {/* ══ LEFT PANEL — dark navy (order summary) ══════════════════ */}
-          <div className="bg-orange-500 lg:w-[380px] lg:min-h-full lg:shrink-0">
+          <div className="bg-primary lg:w-[380px] lg:min-h-full lg:shrink-0">
 
             {/* Mobile: collapsible summary pill */}
             <button
@@ -274,7 +275,7 @@ export default function CheckoutPage() {
                       <div className="flex items-center gap-2">
                         <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold
                           transition-colors duration-300
-                          ${active ? "bg-[#2563eb] text-white" : done ? "bg-[#22c55e] text-white" : "bg-[#f3f4f6] text-[#9ca3af]"}`}>
+                          ${active ? "bg-primary text-white" : done ? "bg-[#22c55e] text-white" : "bg-[#f3f4f6] text-[#9ca3af]"}`}>
                           {done ? (
                             <svg viewBox="0 0 12 12" fill="none" className="w-3 h-3">
                               <polyline points="2 6 5 9 10 3" stroke="white" strokeWidth="1.8" strokeLinecap="round"/>
@@ -312,7 +313,7 @@ export default function CheckoutPage() {
                   {/* UPI card */}
                   <div className="border border-[#e5e7eb] rounded-xl p-5 bg-[#fafafa]">
                     <div className="flex items-center gap-2 mb-4">
-                      <Scan className="w-4 h-4 text-[#2563eb]" />
+                      <Scan className="w-4 h-4 text-primary" />
                       <span className="text-sm font-semibold text-[#111827]">Pay via UPI</span>
                     </div>
 
@@ -337,7 +338,7 @@ export default function CheckoutPage() {
                         </div>
                         <button
                           onClick={() => { window.location.href = qrCodeValue; }}
-                          className="w-full py-2.5 bg-[#2563eb] text-white text-sm font-semibold rounded-lg
+                          className="w-full py-2.5 bg-primary text-white text-sm font-semibold rounded-lg
                             hover:bg-[#1d4ed8] active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
                         >
                           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="w-4 h-4">
@@ -378,7 +379,7 @@ export default function CheckoutPage() {
                     <button
                       onClick={handleSubmit(handleOrder)}
                       disabled={!transactionId.trim() || isSubmitting}
-                      className="flex-[2] py-3 bg-[#2563eb] text-white text-sm font-semibold rounded-lg
+                      className="flex-[2] py-3 bg-primary text-white text-sm font-semibold rounded-lg
                         hover:bg-[#1d4ed8] disabled:opacity-40 disabled:cursor-not-allowed
                         active:scale-[0.98] transition-all duration-150 flex items-center justify-center gap-2"
                     >
@@ -397,13 +398,13 @@ export default function CheckoutPage() {
 
                       <Field label="Full Name *" id="customerName" error={errors.customerName?.message}>
                         <input id="customerName" {...register("customerName")}
-                          placeholder="Arjun Menon" className={inputCls(errors.customerName?.message)} />
+                          placeholder="Your Name" className={inputCls(errors.customerName?.message)} />
                       </Field>
 
                       <div className="grid grid-cols-2 gap-3">
                         <Field label="Phone *" id="phoneNumber" error={errors.phoneNumber?.message}>
                           <input id="phoneNumber" {...register("phoneNumber")}
-                            placeholder="9400941277" className={inputCls(errors.phoneNumber?.message)} />
+                            placeholder="Phone Number" className={inputCls(errors.phoneNumber?.message)} />
                         </Field>
                         <Field label="Alternate Phone" id="alternatePhone">
                           <input id="alternatePhone" {...register("alternatePhone")}
@@ -413,7 +414,7 @@ export default function CheckoutPage() {
 
                       <Field label="Instagram ID" id="instagramId">
                         <input id="instagramId" {...register("instagramId")}
-                          placeholder="@username" className={inputCls()} />
+                          placeholder="Instagram ID" className={inputCls()} />
                       </Field>
 
                       <Field label="Full Address *" id="address" error={errors.address?.message}>
@@ -425,15 +426,15 @@ export default function CheckoutPage() {
                       <div className="grid grid-cols-3 gap-3">
                         <Field label="District *" id="district" error={errors.district?.message}>
                           <input id="district" {...register("district")}
-                            placeholder="Kannur" className={inputCls(errors.district?.message)} />
+                            placeholder="District" className={inputCls(errors.district?.message)} />
                         </Field>
                         <Field label="State *" id="state" error={errors.state?.message}>
                           <input id="state" {...register("state")}
-                            placeholder="Kerala" className={inputCls(errors.state?.message)} />
+                            placeholder="State" className={inputCls(errors.state?.message)} />
                         </Field>
                         <Field label="Pincode *" id="pincode" error={errors.pincode?.message}>
                           <input id="pincode" {...register("pincode")}
-                            placeholder="670001" className={inputCls(errors.pincode?.message)} />
+                            placeholder="Pincode" className={inputCls(errors.pincode?.message)} />
                         </Field>
                       </div>
 
@@ -457,11 +458,11 @@ export default function CheckoutPage() {
                         className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer
                           transition-all duration-150 select-none
                           ${paymentMethod === "online"
-                            ? "border-[#2563eb] bg-[#eff6ff] ring-1 ring-[#2563eb]"
+                            ? "border-primary bg-[#eff6ff] ring-1 ring-primary"
                             : "border-[#e5e7eb] hover:border-[#9ca3af]"}`}
                       >
                         <input type="radio" name="payment" value="online" checked={paymentMethod === "online"}
-                          onChange={() => setPaymentMethod("online")} className="mt-0.5 accent-[#2563eb]" />
+                          onChange={() => setPaymentMethod("online")} className="mt-0.5 accent-primary" />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-[#111827]">Online Payment</span>
@@ -478,11 +479,11 @@ export default function CheckoutPage() {
                         className={`flex items-start gap-3 p-4 border rounded-xl cursor-pointer
                           transition-all duration-150 select-none
                           ${paymentMethod === "cod"
-                            ? "border-[#2563eb] bg-[#eff6ff] ring-1 ring-[#2563eb]"
+                            ? "border-primary bg-[#eff6ff] ring-1 ring-primary"
                             : "border-[#e5e7eb] hover:border-[#9ca3af]"}`}
                       >
                         <input type="radio" name="payment" value="cod" checked={paymentMethod === "cod"}
-                          onChange={() => setPaymentMethod("cod")} className="mt-0.5 accent-[#2563eb]" />
+                          onChange={() => setPaymentMethod("cod")} className="mt-0.5 accent-primary" />
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-[#111827]">Cash on Delivery</span>
@@ -509,16 +510,14 @@ export default function CheckoutPage() {
                   </div>
 
                   {/* Submit */}
-                  <button
+                  <Button
                     type="submit"
-                    className="w-full py-3.5 bg-[#2563eb] text-white font-semibold text-sm rounded-xl
-                      hover:bg-[#1d4ed8] active:scale-[0.98]
-                      transition-all duration-150 flex items-center justify-center gap-2
-                      shadow-[0_4px_14px_rgba(37,99,235,0.35)]"
+                    className="w-full"
+                  size={'lg'}
                   >
                     <Lock className="w-4 h-4" />
                     Proceed to Payment →
-                  </button>
+                  </Button>
                 </form>
               )}
             </div>
