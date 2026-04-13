@@ -4,7 +4,18 @@
 import React, { useState, useEffect, use } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Loader2, CheckCircle2, Package, MapPin, CreditCard, MessageCircle, Printer, ChevronDown, ChevronUp, ArrowLeft } from "lucide-react";
+import {
+  Loader2,
+  CheckCircle2,
+  Package,
+  MapPin,
+  CreditCard,
+  MessageCircle,
+  Printer,
+  ChevronDown,
+  ChevronUp,
+  ArrowLeft,
+} from "lucide-react";
 import Image from "next/image";
 import { urlFor } from "@/lib/sanity";
 import Link from "next/link";
@@ -50,13 +61,46 @@ interface Props {
 }
 
 // ── Status config ─────────────────────────────────────────────────────────────
-const STATUS_CONFIG: Record<string, { label: string; color: string; bg: string; dot: string }> = {
-  pending:    { label: "Order Placed",   color: "#d97706", bg: "#fffbeb", dot: "#f59e0b" },
-  confirmed:  { label: "Confirmed",      color: "#2563eb", bg: "#eff6ff", dot: "#3b82f6" },
-  processing: { label: "Processing",     color: "#7c3aed", bg: "#f5f3ff", dot: "#8b5cf6" },
-  shipped:    { label: "Shipped",        color: "#0891b2", bg: "#ecfeff", dot: "#06b6d4" },
-  delivered:  { label: "Delivered",      color: "#16a34a", bg: "#f0fdf4", dot: "#22c55e" },
-  cancelled:  { label: "Cancelled",      color: "#dc2626", bg: "#fef2f2", dot: "#ef4444" },
+const STATUS_CONFIG: Record<
+  string,
+  { label: string; color: string; bg: string; dot: string }
+> = {
+  pending: {
+    label: "Order Placed",
+    color: "#d97706",
+    bg: "#fffbeb",
+    dot: "#f59e0b",
+  },
+  confirmed: {
+    label: "Confirmed",
+    color: "#2563eb",
+    bg: "#eff6ff",
+    dot: "#3b82f6",
+  },
+  processing: {
+    label: "Processing",
+    color: "#7c3aed",
+    bg: "#f5f3ff",
+    dot: "#8b5cf6",
+  },
+  shipped: {
+    label: "Shipped",
+    color: "#0891b2",
+    bg: "#ecfeff",
+    dot: "#06b6d4",
+  },
+  delivered: {
+    label: "Delivered",
+    color: "#16a34a",
+    bg: "#f0fdf4",
+    dot: "#22c55e",
+  },
+  cancelled: {
+    label: "Cancelled",
+    color: "#dc2626",
+    bg: "#fef2f2",
+    dot: "#ef4444",
+  },
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -66,7 +110,10 @@ function StatusBadge({ status }: { status: string }) {
       className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold"
       style={{ color: cfg.color, background: cfg.bg }}
     >
-      <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ background: cfg.dot }} />
+      <span
+        className="w-1.5 h-1.5 rounded-full animate-pulse"
+        style={{ background: cfg.dot }}
+      />
       {cfg.label}
     </span>
   );
@@ -75,7 +122,9 @@ function StatusBadge({ status }: { status: string }) {
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-start justify-between gap-4 py-2.5 border-b border-[#f3f4f6] last:border-0">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#9ca3af] shrink-0">{label}</span>
+      <span className="text-[11px] font-semibold uppercase tracking-[0.07em] text-[#9ca3af] shrink-0">
+        {label}
+      </span>
       <span className="text-sm text-[#374151] text-right">{value}</span>
     </div>
   );
@@ -83,7 +132,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 
 export default function OrderPage({ params }: Props) {
   const { id } = use(params);
-  const [order, setOrder] = useState<Order | null>(null);
+  const [order, setOrder] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [itemsOpen, setItemsOpen] = useState(true);
@@ -104,6 +153,8 @@ export default function OrderPage({ params }: Props) {
       }
     })();
   }, [id]);
+
+  console.log(order);
 
   if (loading) {
     return (
@@ -127,8 +178,10 @@ export default function OrderPage({ params }: Props) {
             {error ? "Failed to load order" : "Order not found"}
           </h2>
           <p className="text-sm text-[#6b7280] mb-5">{error}</p>
-          <button onClick={() => router.push("/track-order")}
-            className="px-5 py-2.5 bg-[#2563eb] text-white text-sm font-medium rounded-lg hover:bg-[#1d4ed8] transition-colors">
+          <button
+            onClick={() => router.push("/track-order")}
+            className="px-5 py-2.5 bg-[#2563eb] text-white text-sm font-medium rounded-lg hover:bg-[#1d4ed8] transition-colors"
+          >
             Track Orders
           </button>
         </div>
@@ -136,13 +189,53 @@ export default function OrderPage({ params }: Props) {
     );
   }
 
-  const subtotal = order.products.reduce((sum, item) => sum + item.product.salesPrice * item.quantity, 0);
+  const subtotal = order.products.reduce(
+    (sum: number, item: { product: { salesPrice: number; }; quantity: number; }) => sum + item.product.salesPrice * item.quantity,
+    0
+  );
   const orderId = order._id.slice(-6).toUpperCase();
-
+  console.log(order);
   const whatsAppMsg = encodeURIComponent(
-    `Hi, I have a question about my order #${orderId}\n\n` +
-    order.products.map(i => `${i.product.name} (Qty: ${i.quantity}, Size: ${i.size}${i.color ? `, Color: ${i.color}` : ""}) - ₹${i.product.salesPrice * i.quantity}`).join("\n") +
-    `\n\nTotal: ₹${order.totalAmount}\nStatus: ${order.orderStatus}`
+    `*Order Details - Order #${order._id}*%0a%0a` +
+    `*Customer Information*%0a` +
+    `Name: ${order.customerName}%0a` +
+    `Phone: ${order.phoneNumber}%0a` +
+    `Alternate Phone: ${order.alternatePhone || 'N/A'}%0a` +
+    `Instagram ID: ${order.instagramId || 'N/A'}%0a%0a` +
+    
+    `*Shipping Address*%0a` +
+    `Address: ${order.address}%0a` +
+    `Landmark: ${order.landmark || 'N/A'}%0a` +
+    `District: ${order.district}%0a` +
+    `State: ${order.state}%0a` +
+    `Pincode: ${order.pincode}%0a%0a` +
+    
+    `*Order Information*%0a` +
+    `Order Date: ${new Date(order.orderedAt).toLocaleString()}%0a` +
+    `Payment Mode: ${order.paymentMode}%0a` +
+    `Payment Status: ${order.paymentStatus ? '✅ Paid' : '❌ Pending'}%0a` +
+    `Transaction ID: ${order.transactionId || 'N/A'}%0a` +
+    `Order Status: ${order.orderStatus || 'Pending'}%0a%0a` +
+    
+    `*Products Ordered*%0a` +
+    order.products
+      .map(
+        (item: { product: { name: any; salesPrice: number; _id: any; }; quantity: number; size: any; color: any; }, index: number) =>
+          `${index + 1}. ${item.product.name}%0a` +
+          `   Quantity: ${item.quantity}%0a` +
+          `${item.size ? `   Size: ${item.size}%0a` : ''}` +
+          `${item.color ? `   Color: ${item.color}%0a` : ''}` +
+          `   Price: ₹${item.product.salesPrice * item.quantity}%0a` +
+          `   Link: ${process.env.NEXT_PUBLIC_BASE_URL}/product/${item.product._id}%0a`
+      )
+      .join('%0a') +
+    
+    `%0a*Order Summary*%0a` +
+    `Subtotal: ₹${order.totalAmount - (order.shippingCharges || 0)}%0a` +
+    `Shipping Charges: ₹${order.shippingCharges || 0}%0a` +
+    `Total Amount: ₹${order.totalAmount}%0a%0a` +
+    
+    `*Need help with this order? Please reply with your query.*`
   );
 
   return (
@@ -168,28 +261,33 @@ export default function OrderPage({ params }: Props) {
       `}</style>
 
       <div className="order-root min-h-screen bg-[#f3f4f6]">
-
         {/* ── Top bar ── */}
         <div className="bg-white border-b border-[#e5e7eb] px-4 py-3 flex items-center justify-between sticky top-0 z-10">
-          <button onClick={() => router.push("/products")}
-            className="flex items-center gap-1.5 text-sm text-[#6b7280] hover:text-[#111827] transition-colors">
+          <button
+            onClick={() => router.push("/products")}
+            className="flex items-center gap-1.5 text-sm text-[#6b7280] hover:text-[#111827] transition-colors"
+          >
             <ArrowLeft className="w-4 h-4" />
             Continue Shopping
           </button>
           <div className="flex items-center gap-2">
             {order.paymentMode === "online" && (
-              <button onClick={() => window.print()}
+              <button
+                onClick={() => window.print()}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-[#374151]
-                  border border-[#e5e7eb] rounded-lg hover:bg-[#f9fafb] transition-colors">
+                  border border-[#e5e7eb] rounded-lg hover:bg-[#f9fafb] transition-colors"
+              >
                 <Printer className="w-3.5 h-3.5" />
                 <span className="hidden sm:inline">Invoice</span>
               </button>
             )}
             <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_PHONE}?text=${whatsAppMsg}`}
-              target="_blank" rel="noopener noreferrer"
+              href={`${process.env.NEXT_PUBLIC_WHATSAPP}?text=${whatsAppMsg}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white
-                bg-[#22c55e] rounded-lg hover:bg-[#16a34a] transition-colors">
+                bg-[#22c55e] rounded-lg hover:bg-[#16a34a] transition-colors"
+            >
               <MessageCircle className="w-3.5 h-3.5" />
               <span className="hidden sm:inline">WhatsApp</span>
             </a>
@@ -197,20 +295,29 @@ export default function OrderPage({ params }: Props) {
         </div>
 
         <div className="max-w-2xl mx-auto px-4 py-8 space-y-4">
-
           {/* ── Success banner ── */}
           <div className="fade-up bg-white rounded-2xl p-6 text-center border border-[#e5e7eb] shadow-[0_1px_4px_rgba(0,0,0,0.06)]">
             <div className="success-icon w-14 h-14 bg-[#f0fdf4] rounded-full flex items-center justify-center mx-auto mb-4">
               <CheckCircle2 className="w-7 h-7 text-[#22c55e]" />
             </div>
-            <h1 className="text-lg font-semibold text-[#111827]">Order Placed Successfully!</h1>
+            <h1 className="text-lg font-semibold text-[#111827]">
+              Order Placed Successfully!
+            </h1>
             <p className="text-sm text-[#6b7280] mt-1">
-              Thank you, <span className="font-medium text-[#374151]">{order.customerName}</span>. We've received your order.
+              Thank you,{" "}
+              <span className="font-medium text-[#374151]">
+                {order.customerName}
+              </span>
+              . We've received your order.
             </p>
             <div className="flex items-center justify-center gap-3 mt-4 flex-wrap">
               <div className="flex items-center gap-2 bg-[#f9fafb] border border-[#e5e7eb] rounded-lg px-4 py-2">
-                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9ca3af]">Order</span>
-                <span className="text-sm font-bold text-[#111827] font-mono">#{orderId}</span>
+                <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#9ca3af]">
+                  Order
+                </span>
+                <span className="text-sm font-bold text-[#111827] font-mono">
+                  #{orderId}
+                </span>
               </div>
               <StatusBadge status={order.orderStatus} />
             </div>
@@ -220,27 +327,39 @@ export default function OrderPage({ params }: Props) {
           <div className="fade-up d1 bg-white rounded-2xl border border-[#e5e7eb] shadow-[0_1px_4px_rgba(0,0,0,0.06)] overflow-hidden">
             <button
               className="w-full flex items-center justify-between px-5 py-4 hover:bg-[#fafafa] transition-colors"
-              onClick={() => setItemsOpen(o => !o)}
+              onClick={() => setItemsOpen((o) => !o)}
             >
               <div className="flex items-center gap-2.5">
                 <Package className="w-4 h-4 text-[#6b7280]" />
                 <span className="text-sm font-semibold text-[#111827]">
-                  {order.products.length} item{order.products.length > 1 ? "s" : ""}
+                  {order.products.length} item
+                  {order.products.length > 1 ? "s" : ""}
                 </span>
               </div>
-              {itemsOpen ? <ChevronUp className="w-4 h-4 text-[#9ca3af]" /> : <ChevronDown className="w-4 h-4 text-[#9ca3af]" />}
+              {itemsOpen ? (
+                <ChevronUp className="w-4 h-4 text-[#9ca3af]" />
+              ) : (
+                <ChevronDown className="w-4 h-4 text-[#9ca3af]" />
+              )}
             </button>
 
             {itemsOpen && (
               <div className="border-t border-[#f3f4f6]">
-                {order.products.map((item: any, i) => (
-                  <div key={i} className="flex gap-4 px-5 py-4 border-b border-[#f3f4f6] last:border-0">
-                    <Link href={`/product/${item.product.id}`} className="shrink-0">
+                {order.products.map((item: any, i:any) => (
+                  <div
+                    key={i}
+                    className="flex gap-4 px-5 py-4 border-b border-[#f3f4f6] last:border-0"
+                  >
+                    <Link
+                      href={`/product/${item.product.id}`}
+                      className="shrink-0"
+                    >
                       <div className="w-16 h-16 rounded-xl overflow-hidden border border-[#e5e7eb] bg-[#f9fafb]">
                         <Image
                           src={urlFor(item.product.images[0])?.url()}
                           alt={item.product.name}
-                          width={64} height={64}
+                          width={64}
+                          height={64}
                           className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                         />
                       </div>
@@ -271,7 +390,9 @@ export default function OrderPage({ params }: Props) {
                       </p>
                     </div>
                     <div className="text-right shrink-0">
-                      <p className="text-[11px] text-[#9ca3af]">₹{item.product.salesPrice} each</p>
+                      <p className="text-[11px] text-[#9ca3af]">
+                        ₹{item.product.salesPrice} each
+                      </p>
                     </div>
                   </div>
                 ))}
@@ -279,16 +400,26 @@ export default function OrderPage({ params }: Props) {
                 {/* Totals */}
                 <div className="px-5 py-4 bg-[#fafafa] space-y-2">
                   <div className="flex justify-between text-sm text-[#6b7280]">
-                    <span>Subtotal</span><span>₹{subtotal}</span>
+                    <span>Subtotal</span>
+                    <span>₹{subtotal}</span>
                   </div>
                   <div className="flex justify-between text-sm text-[#6b7280]">
                     <span>Shipping</span>
-                    <span className={order.shippingCharges === 0 ? "text-[#22c55e] font-medium" : ""}>
-                      {order.shippingCharges === 0 ? "Free" : `₹${order.shippingCharges}`}
+                    <span
+                      className={
+                        order.shippingCharges === 0
+                          ? "text-[#22c55e] font-medium"
+                          : ""
+                      }
+                    >
+                      {order.shippingCharges === 0
+                        ? "Free"
+                        : `₹${order.shippingCharges}`}
                     </span>
                   </div>
                   <div className="flex justify-between text-base font-bold text-[#111827] pt-1 border-t border-[#e5e7eb]">
-                    <span>Total</span><span>₹{order.totalAmount}</span>
+                    <span>Total</span>
+                    <span>₹{order.totalAmount}</span>
                   </div>
                 </div>
               </div>
@@ -297,18 +428,24 @@ export default function OrderPage({ params }: Props) {
 
           {/* ── Two-column cards ── */}
           <div className="fade-up d2 grid sm:grid-cols-2 gap-4">
-
             {/* Shipping */}
             <div className="bg-white rounded-2xl border border-[#e5e7eb] shadow-[0_1px_4px_rgba(0,0,0,0.06)] p-5">
               <div className="flex items-center gap-2 mb-4">
                 <div className="w-7 h-7 bg-[#eff6ff] rounded-lg flex items-center justify-center">
                   <MapPin className="w-3.5 h-3.5 text-[#2563eb]" />
                 </div>
-                <span className="text-sm font-semibold text-[#111827]">Delivery Address</span>
+                <span className="text-sm font-semibold text-[#111827]">
+                  Delivery Address
+                </span>
               </div>
               <div className="space-y-0.5">
-                <p className="text-sm font-medium text-[#111827]">{order.customerName}</p>
-                <p className="text-sm text-[#6b7280]">{order.phoneNumber}{order.alternatePhone && ` · ${order.alternatePhone}`}</p>
+                <p className="text-sm font-medium text-[#111827]">
+                  {order.customerName}
+                </p>
+                <p className="text-sm text-[#6b7280]">
+                  {order.phoneNumber}
+                  {order.alternatePhone && ` · ${order.alternatePhone}`}
+                </p>
                 <p className="text-sm text-[#6b7280] mt-1.5 leading-relaxed">
                   {order.address}
                   {order.landmark && `, Near ${order.landmark}`}
@@ -317,7 +454,9 @@ export default function OrderPage({ params }: Props) {
                   {order.district}, {order.state} – {order.pincode}
                 </p>
                 {order.instagramId && (
-                  <p className="text-xs text-[#9ca3af] mt-2">Instagram: {order.instagramId}</p>
+                  <p className="text-xs text-[#9ca3af] mt-2">
+                    Instagram: {order.instagramId}
+                  </p>
                 )}
               </div>
             </div>
@@ -328,21 +467,34 @@ export default function OrderPage({ params }: Props) {
                 <div className="w-7 h-7 bg-[#f0fdf4] rounded-lg flex items-center justify-center">
                   <CreditCard className="w-3.5 h-3.5 text-[#22c55e]" />
                 </div>
-                <span className="text-sm font-semibold text-[#111827]">Payment</span>
+                <span className="text-sm font-semibold text-[#111827]">
+                  Payment
+                </span>
               </div>
               <InfoRow
                 label="Method"
-                value={order.paymentMode === "cod" ? "Cash on Delivery" : "Online Payment"}
+                value={
+                  order.paymentMode === "cod"
+                    ? "Cash on Delivery"
+                    : "Online Payment"
+                }
               />
-              {order.transactionId && <InfoRow label="Txn ID" value={order.transactionId} />}
+              {order.transactionId && (
+                <InfoRow label="Txn ID" value={order.transactionId} />
+              )}
               <InfoRow
                 label="Date"
-                value={new Date(order.orderedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                value={new Date(order.orderedAt).toLocaleDateString("en-IN", {
+                  day: "numeric",
+                  month: "short",
+                  year: "numeric",
+                })}
               />
               {order.paymentMode === "cod" && (
                 <div className="mt-3 bg-[#fffbeb] border border-[#fde68a] rounded-lg px-3 py-2.5">
                   <p className="text-xs text-[#92400e] leading-relaxed">
-                    <span className="font-semibold">COD:</span> Advance ₹100 paid · ₹{order.totalAmount - 100} due on delivery
+                    <span className="font-semibold">COD:</span> Advance ₹100
+                    paid · ₹{order.totalAmount - 100} due on delivery
                   </p>
                 </div>
               )}
@@ -352,12 +504,17 @@ export default function OrderPage({ params }: Props) {
           {/* ── Support CTA ── */}
           <div className="fade-up d3 bg-[#1e293b] rounded-2xl p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
-              <p className="text-sm font-semibold text-white">Need help with your order?</p>
-              <p className="text-xs text-white/45 mt-0.5">We typically reply within an hour on WhatsApp</p>
+              <p className="text-sm font-semibold text-white">
+                Need help with your order?
+              </p>
+              <p className="text-xs text-white/45 mt-0.5">
+                We typically reply within an hour on WhatsApp
+              </p>
             </div>
             <a
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_PHONE}?text=${whatsAppMsg}`}
-              target="_blank" rel="noopener noreferrer"
+              href={`${process.env.NEXT_PUBLIC_WHATSAPP}?text=${whatsAppMsg}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="shrink-0 flex items-center gap-2 px-4 py-2.5 bg-[#22c55e] text-white
                 text-sm font-semibold rounded-xl hover:bg-[#16a34a] active:scale-95 transition-all duration-150"
             >
@@ -365,7 +522,6 @@ export default function OrderPage({ params }: Props) {
               Chat on WhatsApp
             </a>
           </div>
-
         </div>
       </div>
     </>

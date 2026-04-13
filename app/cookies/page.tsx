@@ -5,7 +5,7 @@ export default function CookiesPolicy() {
     <>
       <Head>
         <title>Cookies Policy - {process.env.NEXT_PUBLIC_APP_NAME}</title>
-        <meta name="description" content="Learn how TRENDZO uses cookies to enhance your browsing experience." />
+        <meta name="description" content="Learn how Ebuy Online Store uses cookies to enhance your browsing experience." />
       </Head>
       <div className="container mx-auto p-6">
         <h1 className="text-5xl font-bold mb-4">Cookies Policy</h1>
@@ -21,15 +21,15 @@ export default function CookiesPolicy() {
         <h3 className="text-2xl font-semibold mt-4">Definitions</h3>
         <ul className="list-disc ml-6">
           <li>
-            <strong>Company:</strong> Refers to TRENDZO ("the Company", "We", "Us", or "Our").
+            <strong>Company:</strong> Refers to Ebuy Online Store ("the Company", "We", "Us", or "Our").
           </li>
           <li>
             <strong>Cookies:</strong> Small files placed on Your device, containing browsing history details among other
             uses.
           </li>
           <li>
-            <strong>Website:</strong> Refers to TRENDZO, accessible from
-            <a href="https://trendzo.co.in" target="_blank" rel="noopener noreferrer" className="text-blue-500"> trendzo.co.in</a>.
+            <strong>Website:</strong> Refers to Ebuy Online Store, accessible from
+            <a href="https://ebuyonlinestore.online" target="_blank" rel="noopener noreferrer" className="text-blue-500"> ebuyonlinestore.online</a>.
           </li>
           <li>
             <strong>You:</strong> The individual or legal entity accessing or using the Website.
@@ -71,12 +71,12 @@ export default function CookiesPolicy() {
         <p>
           If you have any questions about this Cookies Policy, contact us at:
           <a
-            href="https://trendzo.co.in/contact"
+            href="https://ebuyonlinestore.online/contact"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500"
           >
-            trendzo.co.in/contact
+            ebuyonlinestore.online/contact
           </a>
           .
         </p>

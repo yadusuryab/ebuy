@@ -65,7 +65,7 @@ export function Iphone({
 
       {!hasVideo && src && (
         <div
-          className="pointer-events-none absolute z-0 overflow-hidden"
+          className="pointer-events-none absolute z-0 rounded-2xl overflow-hidden"
           style={{
             left: `${LEFT_PCT}%`,
             top: `${TOP_PCT}%`,
@@ -77,7 +77,7 @@ export function Iphone({
           <img
             src={src}
             alt=""
-            className="block size-full object-cover object-top"
+            className="block size-full pt-6 bg-[#0c0f14] rounded-2xl  object-cover object-top"
           />
         </div>
       )}

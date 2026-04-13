@@ -47,14 +47,42 @@ export default function ContactPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.name || !form.email || !form.message) return;
+    
     setStatus("sending");
-    // Replace with your actual form submission endpoint
+    
     try {
-      await new Promise((r) => setTimeout(r, 1200)); // simulate
+      // Get WhatsApp number from environment variable
+      const whatsappNumber = process.env.NEXT_PUBLIC_PHONE;
+      
+      if (!whatsappNumber) {
+        throw new Error("WhatsApp number not configured");
+      }
+      
+      // Format the message
+      const message = `*New Contact Form Submission*%0a%0a*Name:* ${form.name}%0a*Email:* ${form.email}%0a*Message:* ${form.message}`;
+      
+      // Create WhatsApp URL (remove any non-numeric characters from phone number)
+      const cleanNumber = whatsappNumber.replace(/\D/g, '');
+      const whatsappUrl = `https://wa.me/${cleanNumber}?text=${message}`;
+      
+      // Open WhatsApp in a new tab
+      window.open(whatsappUrl, '_blank');
+      
+      // Optional: Also simulate API call or track submission
+      await new Promise((r) => setTimeout(r, 500));
+      
       setStatus("sent");
       setForm({ name: "", email: "", message: "" });
-    } catch {
+      
+      // Reset status after 3 seconds
+      setTimeout(() => setStatus("idle"), 3000);
+      
+    } catch (error) {
+      console.error("Error:", error);
       setStatus("error");
+      
+      // Reset error status after 3 seconds
+      setTimeout(() => setStatus("idle"), 3000);
     }
   };
 

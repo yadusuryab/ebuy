@@ -8,6 +8,9 @@ const NAV_LINKS = [
   { href: "/terms",                           label: "Terms"       },
   { href: "/contact",                         label: "Contact"     },
   { href: "/track-order",           label: "Track Order", external: true },
+  { href: "/privacy",           label: "Privacy", external: true },
+  { href: "/cookies",           label: "Cookies", external: true },
+
   { href: process.env.NEXT_PUBLIC_INSTA || "#", label: "Instagram", external: true },
   {
     href: `https://wa.me/${process.env.NEXT_PUBLIC_PHONE}`,

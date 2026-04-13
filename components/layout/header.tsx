@@ -25,7 +25,10 @@ const HIDE_SEARCH_PATHS = [
   "/product",
   "/products",
   "/term",
-  "/contact"
+  "/contact",
+  '/track-order',
+  '/order',
+  '/privacy'
 ];
 
 /* ─── paths that hide the marquee strip ─── */
@@ -367,7 +370,7 @@ function Header() {
 
                   <div className="px-5 py-3 border-t border-gray-100 bg-gray-50/80">
                     <p className="text-[11px] text-gray-400 text-center font-medium tracking-wide">
-                      Trending Store Kerala
+                      {process.env.NEXT_PUBLIC_APP_NAME}
                     </p>
                   </div>
                 </div>

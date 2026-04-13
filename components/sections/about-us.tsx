@@ -19,9 +19,12 @@ import {
   useSpring,
   MotionValue,
 } from "framer-motion";
-import ss from "@/public/ss.png";
+import ss from "@/public/ss2.jpeg";
 import Link from "next/link";
 import { Iphone } from "../ui/iphone";
+import { Button } from "../ui/button";
+import { Badge } from "../ui/badge";
+import { IconBrandInstagram } from "@tabler/icons-react";
 
 /* ─────────────────────────────────────────
    Data
@@ -56,7 +59,7 @@ const services = [
 const stats = [
   { icon: Award,      value: 3,     label: "Years in Market",      suffix: "+" },
   { icon: Users,      value: 852,  label: "Instagram Followers",  suffix: "+" },
-  { icon: TrendingUp, value: 5346, label: "Happy Customers",      suffix: "+" },
+  { icon: TrendingUp, value: 52346, label: "Happy Customers",      suffix: "+" },
 ];
 
 /* ─────────────────────────────────────────
@@ -212,7 +215,6 @@ export default function AboutUsSection() {
               >
                 <Iphone
                   src={ss.src}
-                className="p-5"
                 
                 />
 
@@ -238,12 +240,20 @@ export default function AboutUsSection() {
   transition={{ delay: 0.9, duration: 0.5 }}
 >
   {instagramAccounts.map((acc) => (
-    <Link key={acc.id} href={`https://instagram.com/${acc.id}`} target="_blank">
-      <span className="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-medium px-4 py-1.5 rounded-full transition-colors w-52 justify-between">
-        <span className="text-muted-foreground">{acc.label}</span>
-        <span className="flex items-center gap-1">@{acc.id} <ArrowRight className="w-3 h-3" /></span>
-      </span>
-    </Link>
+  <Link key={acc.id} href={`https://instagram.com/${acc.id}`} target="_blank">
+  <Button
+    className="w-full md:min-w-[400px] min-w-[300px] rounded-full ring-1 ring-border bg-primary/10 justify-between px-4"
+    variant="secondary"
+  >
+    <span className="flex items-center gap-2">
+      <IconBrandInstagram className="w-4 h-4 text-primary shrink-0" />
+      <span className="font-medium">{acc.label}</span>
+    </span>
+    <Badge  className="rounded-full  font-normal gap-1">
+      @{acc.id} <ArrowRight className="w-3 h-3" />
+    </Badge>
+  </Button>
+</Link>
   ))}
 </motion.div>
             </div>
