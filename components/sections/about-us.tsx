@@ -26,6 +26,12 @@ import { Iphone } from "../ui/iphone";
 /* ─────────────────────────────────────────
    Data
 ───────────────────────────────────────── */
+const instagramAccounts = [
+  { id: "ebuyonlinestore_",     label: "Main Store" },
+  { id: "ebuyonline_watches",   label: "Watches" },
+  { id: "ebuyonline_gadgets",   label: "Gadgets" },
+  { id: "ebuyonline_ladies",    label: "Ladies" },
+];
 const services = [
   {
     icon: ShieldCheck,
@@ -226,17 +232,20 @@ export default function AboutUsSection() {
 
               {/* Always-visible Instagram pill below image */}
               <motion.div
-                className="mt-4 flex justify-center"
-                initial={{ opacity: 0, y: 10 }}
-                animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
-                transition={{ delay: 0.9, duration: 0.5 }}
-              >
-                <Link href={process.env.NEXT_PUBLIC_INSTA || "#"}>
-                  <span className="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-medium px-4 py-2 rounded-full transition-colors">
-                    Our Instagram <ArrowRight className="w-3 h-3" />
-                  </span>
-                </Link>
-              </motion.div>
+  className="mt-4 flex flex-col items-center gap-2"
+  initial={{ opacity: 0, y: 10 }}
+  animate={isInView ? { opacity: 1, y: 0 } : { opacity: 0, y: 10 }}
+  transition={{ delay: 0.9, duration: 0.5 }}
+>
+  {instagramAccounts.map((acc) => (
+    <Link key={acc.id} href={`https://instagram.com/${acc.id}`} target="_blank">
+      <span className="inline-flex items-center gap-1.5 bg-secondary hover:bg-secondary/80 text-foreground text-xs font-medium px-4 py-1.5 rounded-full transition-colors w-52 justify-between">
+        <span className="text-muted-foreground">{acc.label}</span>
+        <span className="flex items-center gap-1">@{acc.id} <ArrowRight className="w-3 h-3" /></span>
+      </span>
+    </Link>
+  ))}
+</motion.div>
             </div>
           </motion.div>
 
@@ -247,7 +256,7 @@ export default function AboutUsSection() {
         {/* ── Stats ── */}
         <motion.div
           ref={statsRef}
-          className="mt-24 grid grid-cols-1 sm:grid-cols-3 gap-6"
+          className="mt-24 flex flex-wrap justify-center sm:grid-cols-3 gap-1"
           initial="hidden"
           animate={isStatsView ? "visible" : "hidden"}
           variants={stagger}
@@ -359,7 +368,7 @@ function StatCard({
   return (
     <motion.div
       ref={ref}
-      className="group relative flex flex-col items-center text-center p-6 rounded-2xl bg-background border border-border/60 hover:border-primary/30 shadow-sm hover:shadow-md transition-all duration-300"
+      className="group relative flex flex-col items-center min-w-38 text-center p-4 rounded-2xl bg-primary/10 border  transition-all duration-300"
       variants={fadeUp}
       custom={delay}
       whileHover={{ y: -4, transition: { duration: 0.2 } }}

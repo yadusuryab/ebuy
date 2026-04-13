@@ -6,7 +6,6 @@ import Brand from "../utils/brand";
 
 const NAV_LINKS = [
   { href: "/terms",                           label: "Terms"       },
-  { href: "/privacy",                         label: "Privacy"     },
   { href: "/contact",                         label: "Contact"     },
   { href: "/track-order",           label: "Track Order", external: true },
   { href: process.env.NEXT_PUBLIC_INSTA || "#", label: "Instagram", external: true },
@@ -59,13 +58,13 @@ export default function Footer() {
           </p>
 
           <Link
-            href="https://instagram.com/getshopigo"
+            href="https://instagram.com/yaduecom"
             target="_blank"
             rel="noreferrer"
             className="text-xs text-zinc-400 hover:text-zinc-700 transition-colors duration-150 whitespace-nowrap"
           >
             crafted by{" "}
-            <span className="font-semibold text-zinc-600">shopigo</span>
+            <span className="font-semibold text-zinc-600">yaduecom</span>
           </Link>
 
         </div>

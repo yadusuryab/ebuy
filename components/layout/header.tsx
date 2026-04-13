@@ -24,6 +24,8 @@ const HIDE_SEARCH_PATHS = [
   "/wishlist",
   "/product",
   "/products",
+  "/term",
+  "/contact"
 ];
 
 /* ─── paths that hide the marquee strip ─── */
