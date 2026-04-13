@@ -12,6 +12,8 @@ import {
   IconChevronRight,
   IconPackage,
   IconMenu,
+  IconTruck,
+  IconTruckDelivery,
 } from "@tabler/icons-react";
 import MarqueeStrip from "../sections/marquee-strip";
 
@@ -215,6 +217,8 @@ function Header() {
             { href: "/",         label: "Home",         icon: <IconHome size={20} /> },
             { href: "/products", label: "All Products",  icon: <IconPackage size={20} /> },
             { href: "/cart",     label: "Cart",          icon: <IconShoppingBag size={20} /> },
+            { href: "/track-order",     label: "Track Order",          icon: <IconTruckDelivery size={20} /> },
+
           ];
 
           /* ════════════════ JSX ════════════════ */
