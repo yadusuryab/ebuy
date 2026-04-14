@@ -92,7 +92,12 @@ export function Preloader() {
             transition: "transform 600ms ease, opacity 600ms ease",
           }}
         >
-          <Brand />
+            <span
+      
+      className={`text-2xl   font-bold tracking-tighter `}
+    >
+     Ebuy Online Store
+    </span>
 
           {/* Watch dial */}
           <div style={{ position: "relative", width: 72, height: 72 }}>

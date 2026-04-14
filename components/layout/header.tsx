@@ -17,7 +17,6 @@ import {
 } from "@tabler/icons-react";
 import MarqueeStrip from "../sections/marquee-strip";
 
-/* ─── paths that hide search bar + categories ─── */
 const HIDE_SEARCH_PATHS = [
   "/checkout",
   "/cart",
@@ -28,12 +27,11 @@ const HIDE_SEARCH_PATHS = [
   "/products",
   "/term",
   "/contact",
-  '/track-order',
-  '/order',
-  '/privacy'
+  "/track-order",
+  "/order",
+  "/privacy",
 ];
 
-/* ─── paths that hide the marquee strip ─── */
 const HIDE_MARQUEE_PATHS = [
   "/checkout",
   "/checkout/success",
@@ -48,7 +46,6 @@ const PLACEHOLDERS = [
   "Discover trends",
 ];
 
-/* ════════════════════════════════════════════════════════════ */
 function HeaderWithSearchParams({
   children,
 }: {
@@ -64,34 +61,34 @@ function HeaderWithSearchParams({
   return children({ searchParams, pathname, router });
 }
 
-/* ════════════════════════════════════════════════════════════ */
 function Header() {
   const [searchQuery, setSearchQuery] = useState("");
   const [categories, setCategories] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
-  const [isSearchOpen, setIsSearchOpen] = useState(false);   // ← collapsible
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   const searchInputRef = useRef<HTMLInputElement>(null);
+  const desktopSearchInputRef = useRef<HTMLInputElement>(null);
   const topSectionRef = useRef<HTMLDivElement>(null);
-  const [topSectionHeight, setTopSectionHeight] = useState(0);
   const lastScrollY = useRef(0);
   const ticking = useRef(false);
 
-  /* ── lock body scroll when mobile menu is open ── */
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
     return () => { document.body.style.overflow = ""; };
   }, [isMobileMenuOpen]);
 
-  /* ── auto-focus search input when opened ── */
   useEffect(() => {
     if (isSearchOpen) {
-      setTimeout(() => searchInputRef.current?.focus(), 50);
+      setTimeout(() => {
+        searchInputRef.current?.focus();
+        desktopSearchInputRef.current?.focus();
+      }, 50);
     }
   }, [isSearchOpen]);
 
@@ -102,13 +99,11 @@ function Header() {
           const shouldHideSearch  = HIDE_SEARCH_PATHS.some(p => pathname.startsWith(p));
           const shouldHideMarquee = HIDE_MARQUEE_PATHS.some(p => pathname.startsWith(p));
 
-          /* sync category from URL */
           // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             setSelectedCategory(searchParams.get("category"));
           }, [searchParams]);
 
-          /* rotate placeholders */
           // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             if (shouldHideSearch) return;
@@ -122,7 +117,6 @@ function Header() {
             return () => clearInterval(id);
           }, [shouldHideSearch]);
 
-          /* fetch categories with 10-min cache */
           // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             (async () => {
@@ -147,14 +141,6 @@ function Header() {
             })();
           }, []);
 
-          /* measure top section for spacer */
-          // eslint-disable-next-line react-hooks/rules-of-hooks
-          useEffect(() => {
-            if (topSectionRef.current)
-              setTopSectionHeight(topSectionRef.current.offsetHeight);
-          }, []);
-
-          /* scroll listener */
           // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             const onScroll = () => {
@@ -171,11 +157,13 @@ function Header() {
             return () => window.removeEventListener("scroll", onScroll);
           }, []);
 
-          /* click-outside to close search */
           // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             const handler = (e: MouseEvent) => {
-              if (!searchInputRef.current?.closest(".search-container")?.contains(e.target as Node)) {
+              const target = e.target as Node;
+              const inMobileSearch = searchInputRef.current?.closest(".search-container")?.contains(target);
+              const inDesktopSearch = desktopSearchInputRef.current?.closest(".desktop-search-container")?.contains(target);
+              if (!inMobileSearch && !inDesktopSearch) {
                 setIsSearchOpen(false);
               }
             };
@@ -183,7 +171,6 @@ function Header() {
             return () => document.removeEventListener("mousedown", handler);
           }, []);
 
-          /* ── handlers ── */
           const handleSearch = (e: React.FormEvent) => {
             e.preventDefault();
             if (!searchQuery.trim()) return;
@@ -214,14 +201,18 @@ function Header() {
           };
 
           const navLinks = [
-            { href: "/",         label: "Home",         icon: <IconHome size={20} /> },
-            { href: "/products", label: "All Products",  icon: <IconPackage size={20} /> },
-            { href: "/cart",     label: "Cart",          icon: <IconShoppingBag size={20} /> },
-            { href: "/track-order",     label: "Track Order",          icon: <IconTruckDelivery size={20} /> },
-
+            { href: "/",            label: "Home",         icon: <IconHome size={20} /> },
+            { href: "/products",    label: "All Products", icon: <IconPackage size={20} /> },
+            { href: "/cart",        label: "Cart",         icon: <IconShoppingBag size={20} /> },
+            { href: "/track-order", label: "Track Order",  icon: <IconTruckDelivery size={20} /> },
           ];
 
-          /* ════════════════ JSX ════════════════ */
+          const desktopNavLinks = [
+            { href: "/",            label: "Home" },
+            { href: "/products",    label: "Shop" },
+            { href: "/track-order", label: "Track Order" },
+          ];
+
           return (
             <>
               <style>{`
@@ -233,12 +224,7 @@ function Header() {
                   from { opacity: 0; }
                   to   { opacity: 1; }
                 }
-                @keyframes searchExpand {
-                  from { width: 0; opacity: 0; }
-                  to   { width: 100%; opacity: 1; }
-                }
                 .header-animate  { animation: slideDown .35s cubic-bezier(.22,1,.36,1) both; }
-                .search-expand   { animation: searchExpand .3s cubic-bezier(.22,1,.36,1) both; }
                 .fade-in         { animation: fadeIn .25s ease both; }
                 .scrollbar-hide::-webkit-scrollbar { display: none; }
                 .scrollbar-hide  { -ms-overflow-style: none; scrollbar-width: none; }
@@ -247,7 +233,7 @@ function Header() {
                 .cat-pill.active { transform: translateY(-1px) scale(1.05); }
                 .mobile-drawer   { transition: transform .35s cubic-bezier(.22,1,.36,1); }
                 .overlay-bg      { transition: opacity .3s ease; }
-                .top-strip       {
+                .top-strip {
                   transition: max-height .45s cubic-bezier(.22,1,.36,1),
                               opacity    .35s ease,
                               margin     .45s cubic-bezier(.22,1,.36,1);
@@ -260,31 +246,55 @@ function Header() {
                   border-radius: 10px;
                   transition: background .2s ease, transform .2s ease;
                 }
-                .icon-btn:hover { background: #f3f4f6; transform: scale(1.05); }
+                .icon-btn:hover  { background: #f3f4f6; transform: scale(1.05); }
                 .icon-btn:active { transform: scale(.95); }
+
+                /* ── Desktop search expand ── */
+                .desktop-search-wrapper {
+                  display: flex;
+                  align-items: center;
+                  transition: all .3s cubic-bezier(.22,1,.36,1);
+                }
+                .desktop-search-input {
+                  width: 0;
+                  opacity: 0;
+                  overflow: hidden;
+                  transition: width .3s cubic-bezier(.22,1,.36,1), opacity .25s ease;
+                }
+                .desktop-search-open .desktop-search-input {
+                  width: 220px;
+                  opacity: 1;
+                }
+                .desktop-nav-link {
+                  font-size: 13px;
+                  font-weight: 500;
+                  color: #444;
+                  padding: 6px 12px;
+                  border-radius: 8px;
+                  transition: background .2s, color .2s;
+                  white-space: nowrap;
+                }
+                .desktop-nav-link:hover { background: #f5f5f5; color: #111; }
+                .desktop-nav-link.active { color: #ea580c; background: #fff7ed; }
               `}</style>
 
               {/* ── Mobile Menu Overlay ── */}
               <div
-                className={`fixed inset-0 z-[60] md:hidden`}
+                className="fixed inset-0 z-[60] md:hidden"
                 style={{
                   pointerEvents: isMobileMenuOpen ? "auto" : "none",
-                  visibility: isMobileMenuOpen ? "visible" : "hidden",
+                  visibility:    isMobileMenuOpen ? "visible" : "hidden",
                 }}
               >
-                {/* backdrop */}
                 <div
                   className="overlay-bg absolute inset-0 bg-black/40 backdrop-blur-sm"
                   style={{ opacity: isMobileMenuOpen ? 1 : 0 }}
                   onClick={() => setIsMobileMenuOpen(false)}
                 />
-
-                {/* drawer */}
                 <div
-                  className={`mobile-drawer absolute top-0 left-0 h-full w-[82vw] max-w-[340px] bg-white shadow-2xl flex flex-col`}
+                  className="mobile-drawer absolute top-0 left-0 h-full w-[82vw] max-w-[340px] bg-white shadow-2xl flex flex-col"
                   style={{ transform: isMobileMenuOpen ? "translateX(0)" : "translateX(-100%)" }}
                 >
-                  {/* drawer header */}
                   <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                     <Link href="/" onClick={() => setIsMobileMenuOpen(false)}>
                       <Brand />
@@ -299,7 +309,6 @@ function Header() {
                   </div>
 
                   <div className="flex-1 overflow-y-auto">
-                    {/* nav links */}
                     <nav className="px-4 pt-5 pb-3">
                       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 mb-3">
                         Navigation
@@ -327,7 +336,6 @@ function Header() {
 
                     <div className="mx-5 border-t border-gray-100 my-1" />
 
-                    {/* categories */}
                     <div className="px-4 pt-4 pb-6">
                       <p className="text-[10px] font-semibold text-gray-400 uppercase tracking-widest px-2 mb-3">
                         Categories
@@ -381,7 +389,7 @@ function Header() {
               </div>
 
               {/* ── Main Header ── */}
-              <header className="header-animate fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md ">
+              <header className="header-animate fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
 
                 {/* Marquee strip */}
                 {!shouldHideMarquee && (
@@ -390,17 +398,14 @@ function Header() {
                     style={{
                       maxHeight: isScrolled ? "0px" : "40px",
                       opacity:   isScrolled ? 0 : 1,
-                      marginBottom: 0,
                     }}
                   >
                     <MarqueeStrip />
                   </div>
                 )}
 
-                {/* ── Brand / icons row ── */}
-                <div ref={topSectionRef} className="search-container relative h-14 overflow-hidden">
-
-                  {/* DEFAULT: [☰] ····· [Logo centered] ····· [🔍] [🛍] */}
+                {/* ════════ MOBILE brand/icon row ════════ */}
+                <div className="md:hidden search-container relative h-14 overflow-hidden">
                   <div
                     className="absolute inset-0 flex items-center px-3 gap-2 transition-all duration-300 ease-[cubic-bezier(.22,1,.36,1)]"
                     style={{
@@ -409,23 +414,20 @@ function Header() {
                       pointerEvents: isSearchOpen ? "none" : "auto",
                     }}
                   >
-                    {/* hamburger */}
                     <button
-                      className="icon-btn flex-shrink-0 md:hidden text-gray-600"
+                      className="icon-btn flex-shrink-0 text-gray-600"
                       onClick={() => setIsMobileMenuOpen(true)}
                       aria-label="Open menu"
                     >
                       <IconMenu size={22} />
                     </button>
 
-                    {/* logo — truly centered via absolute positioning */}
                     <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                       <Link href="/" className="pointer-events-auto transition-opacity hover:opacity-75">
                         <Brand />
                       </Link>
                     </div>
 
-                    {/* right icons */}
                     <div className="ml-auto flex items-center gap-1">
                       {!shouldHideSearch && (
                         <button
@@ -444,7 +446,6 @@ function Header() {
                     </div>
                   </div>
 
-                  {/* SEARCH: [input·············] [Cancel] */}
                   {!shouldHideSearch && (
                     <div
                       className="absolute inset-0 flex items-center px-3 gap-2 transition-all duration-300 ease-[cubic-bezier(.22,1,.36,1)]"
@@ -480,10 +481,87 @@ function Header() {
                   )}
                 </div>
 
-                {/* ── Categories strip ── */}
+                {/* ════════ DESKTOP nav row ════════ */}
+                <div className="hidden md:flex items-center gap-4 px-6 lg:px-10 h-16">
+                  {/* Logo */}
+                  <Link href="/" className="flex-shrink-0 transition-opacity hover:opacity-75 mr-2">
+                    <Brand />
+                  </Link>
+
+                  {/* Nav links */}
+                  <nav className="flex items-center gap-1">
+                    {desktopNavLinks.map(link => (
+                      <Link
+                        key={link.href}
+                        href={link.href}
+                        className={`desktop-nav-link ${pathname === link.href ? "active" : ""}`}
+                      >
+                        {link.label}
+                      </Link>
+                    ))}
+                  </nav>
+
+                  {/* Spacer */}
+                  <div className="flex-1" />
+
+                  {/* Search — expands on click */}
+                  {!shouldHideSearch && (
+                    <div className={`desktop-search-container desktop-search-wrapper ${isSearchOpen ? "desktop-search-open" : ""}`}>
+                      <form
+                        onSubmit={handleSearch}
+                        className={`flex items-center gap-2 h-9 rounded-xl px-3 border transition-all duration-300 ${
+                          isSearchOpen
+                            ? "border-orange-300 ring-2 ring-orange-100 bg-white"
+                            : "border-transparent bg-gray-100"
+                        }`}
+                      >
+                        <button
+                          type={isSearchOpen ? "submit" : "button"}
+                          onClick={() => !isSearchOpen && setIsSearchOpen(true)}
+                          className="flex-shrink-0 text-gray-500 hover:text-gray-700 transition-colors"
+                          aria-label="Search"
+                        >
+                          <IconSearch size={17} />
+                        </button>
+                        <div className="desktop-search-input">
+                          <input
+                            ref={desktopSearchInputRef}
+                            type="text"
+                            value={searchQuery}
+                            onChange={e => setSearchQuery(e.target.value)}
+                            className="text-sm focus:outline-none bg-transparent placeholder-gray-400 w-full"
+                            placeholder={PLACEHOLDERS[placeholderIndex]}
+                          />
+                        </div>
+                        {isSearchOpen && searchQuery && (
+                          <button type="button" onClick={() => setSearchQuery("")} className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors">
+                            <IconX size={13} />
+                          </button>
+                        )}
+                        {isSearchOpen && (
+                          <button
+                            type="button"
+                            onClick={() => { setIsSearchOpen(false); setSearchQuery(""); }}
+                            className="flex-shrink-0 text-xs font-medium text-orange-500 hover:text-orange-700 transition-colors whitespace-nowrap ml-1"
+                          >
+                            Cancel
+                          </button>
+                        )}
+                      </form>
+                    </div>
+                  )}
+
+                  {/* Cart */}
+                  <Link href="/cart">
+                    <button className="icon-btn text-gray-600" aria-label="Cart">
+                      <IconShoppingBag size={21} />
+                    </button>
+                  </Link>
+                </div>
+
+                {/* ════════ Categories strip (shared mobile + desktop) ════════ */}
                 {!shouldHideSearch && (
-                  <div className="px-3 pb-2 pt-1 flex overflow-x-auto gap-2 scrollbar-hide">
-                    {/* "For you" pill */}
+                  <div className="px-3 md:px-6 lg:px-10 pb-2 pt-1 flex overflow-x-auto gap-2 scrollbar-hide border-t border-gray-50">
                     <button
                       onClick={() => handleCategoryClick("")}
                       className={`cat-pill flex-shrink-0 flex flex-col items-center gap-1 px-3 py-2 rounded-xl text-xs font-medium ${
@@ -493,7 +571,7 @@ function Header() {
                       }`}
                     >
                       <div
-                        className="rounded-lg overflow-hidden  flex items-center justify-center transition-all duration-400"
+                        className="rounded-lg overflow-hidden flex items-center justify-center transition-all duration-400"
                         style={{
                           width:   isScrolled ? 0 : 44,
                           height:  isScrolled ? 0 : 44,
@@ -554,7 +632,6 @@ function Header() {
                     : `${
                         (shouldHideMarquee ? 0 : 36) +
                         56 +
-                        0 +
                         (shouldHideSearch ? 0 : 72)
                       }px`,
                   transition: "height .4s cubic-bezier(.22,1,.36,1)",
@@ -568,7 +645,6 @@ function Header() {
   );
 }
 
-/* ════════════════════════════════════════════════════════════ */
 function HeaderFallback() {
   return (
     <header className="fixed top-0 left-0 right-0 z-50 bg-white border-b border-gray-200">
