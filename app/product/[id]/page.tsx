@@ -8,6 +8,7 @@ import ProductBuySection from "@/components/sections/product-add-to-cart";
 import StarRating_Basic from "@/components/commerce-ui/star-rating-basic";
 import { Metadata, ResolvingMetadata } from "next";
 import ProductDetailsClient from "@/components/product/ProductDetailsClient";
+import BackButton from "@/components/ui/back-button";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -154,7 +155,8 @@ const ProductPage = async ({ params }: Props) => {
       />
       
       {/* Breadcrumbs */}
-      <div className="px-4 md:px-20 lg:px-32 pt-8 pb-4">
+      <div className="px-4 md:px-20 lg:px-32 pt-8 pb-4 flex items-center gap-4">
+        <BackButton />
         <nav className="text-xs uppercase tracking-wider text-[#666666]">
           SHOP / {product?.category?.title || 'PRODUCTS'} / {product.name.toUpperCase()}
         </nav>

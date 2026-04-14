@@ -5,10 +5,12 @@ import { Dot, Zap } from "lucide-react";
 
 const items = [
   "Free shipping on orders paid online",
-  "Handpicked fashion, curated just for you",
+  "Extra Discounts on Prepaid Orders - Limited Time Only!",
+  "Order Now - Fast Delivery Available",
   "Secure checkout · 100% safe payments",
   "Free shipping on orders paid online",
-  "Handpicked fashion, curated just for you",
+  "Extra Discounts on Prepaid Orders - Limited Time Only!",
+  "Order Now - Fast Delivery Available",
   "Secure checkout · 100% safe payments",
 ];
 
