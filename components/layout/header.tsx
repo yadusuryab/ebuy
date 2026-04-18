@@ -359,7 +359,7 @@ function Header() {
                               <div className="h-3.5 bg-gray-100 rounded animate-pulse flex-1" />
                             </div>
                           ))
-                        : categories.map((cat: any) => (
+                        : categories?.map((cat: any) => (
                             <button
                               key={cat._id}
                               onClick={() => { handleCategoryClick(cat.slug); setIsMobileMenuOpen(false); }}
@@ -593,7 +593,7 @@ function Header() {
                             <div className="h-3 w-12 bg-gray-100 rounded animate-pulse" />
                           </div>
                         ))
-                      : categories.map((cat: any) => (
+                      : categories?.map((cat: any) => (
                           <button
                             key={cat._id}
                             onClick={() => handleCategoryClick(cat.slug)}
