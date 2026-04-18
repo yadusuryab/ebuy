@@ -50,7 +50,6 @@ const checkoutSchemaExtended = z.object({
     .regex(/^[1-9][0-9]{5}$/, "Invalid pincode format"),
   landmark: z.string().optional(),
 }).refine((data) => {
-  // If manual entry selected, require manual fields
   if (data.state === MANUAL_ENTRY) {
     return !!data.manualState && data.manualState.length >= 2;
   }
@@ -161,52 +160,44 @@ export default function CheckoutPage() {
     }
   }, [watchState, setValue]);
 
-  // Replace the existing useEffect for calculateShipping with this:
-
-// Calculate shipping based on location and payment method
-useEffect(() => {
-  const calculateShipping = () => {
-    const actualState = getActualState();
-    
-    if (!actualState) {
-      // Default values before location is selected
-      setShippingCharges(0);
-      setDeliveryTime("Select location for delivery estimate");
-      return;
-    }
-    
-    // Calculate shipping charges based on payment method AND location
-    if (paymentMethod === "online") {
-      // Online payment: Free shipping for Kerala, ₹50 for outside Kerala
-      if (isKeralaLocation(actualState)) {
+  // Calculate shipping based on location and payment method - FIXED
+  useEffect(() => {
+    const calculateShipping = () => {
+      const actualState = getActualState();
+      
+      if (!actualState || actualState === "") {
         setShippingCharges(0);
-        setDeliveryTime("Kerala: 2–3 days delivery");
-      } else {
-        setShippingCharges(50);
-        setDeliveryTime("Outside Kerala: 6–7 days delivery");
+        setDeliveryTime("Select location for delivery estimate");
+        return;
       }
-    } else {
-      // COD payment: Additional charges apply
-      if (isKeralaLocation(actualState)) {
-        setShippingCharges(100); // ₹100 COD charge for Kerala
-        setDeliveryTime("Kerala: 2–3 days delivery");
+      
+      console.log("Calculating for:", { paymentMethod, actualState, isKerala: isKeralaLocation(actualState) });
+      
+      // Calculate shipping charges based on payment method AND location
+      if (paymentMethod === "online") {
+        // Online payment: Free shipping for Kerala, ₹50 for outside Kerala
+        if (isKeralaLocation(actualState)) {
+          setShippingCharges(0);
+          setDeliveryTime("Kerala: 2–3 days delivery");
+        } else {
+          setShippingCharges(50);
+          setDeliveryTime("Outside Kerala: 6–7 days delivery");
+        }
       } else {
-        setShippingCharges(150); // ₹100 COD + ₹50 outside Kerala
-        setDeliveryTime("Outside Kerala: 6–7 days delivery");
+        // COD payment: Additional charges apply
+        if (isKeralaLocation(actualState)) {
+          setShippingCharges(100); // ₹100 COD charge for Kerala
+          setDeliveryTime("Kerala: 2–3 days delivery");
+        } else {
+          setShippingCharges(150); // ₹100 COD + ₹50 outside Kerala
+          setDeliveryTime("Outside Kerala: 6–7 days delivery");
+        }
       }
-    }
-  };
-  
-  calculateShipping();
-}, [paymentMethod, watchState, watchManualState, getActualState]);
+    };
+    
+    calculateShipping();
+  }, [paymentMethod, watchState, watchManualState, getActualState]);
 
-// Add this useEffect to reset district when state changes
-useEffect(() => {
-  if (watchState) {
-    setValue("district", "");
-    setValue("manualDistrict", "");
-  }
-}, [watchState, setValue]);
   // Handle pincode lookup
   const handlePincodeLookup = useCallback(() => {
     const pincode = watchPincode;
@@ -219,12 +210,10 @@ useEffect(() => {
 
     setIsLoadingPincode(true);
     
-    // Simulate async behavior for smooth UX
     setTimeout(() => {
       const location = getLocationFromPincode(pincode);
       
       if (location) {
-        // Check if state exists in our list
         const stateExists = statesData.some(s => 
           s.name.toLowerCase() === location.state.toLowerCase()
         );
@@ -232,10 +221,7 @@ useEffect(() => {
         if (stateExists) {
           setValue("state", location.state);
           
-          // Get districts for this state
           const stateDistricts = getDistrictsByState(location.state);
-          
-          // Check if district exists
           const districtExists = stateDistricts.some(
             d => d.toLowerCase() === location.district.toLowerCase()
           );
@@ -243,25 +229,21 @@ useEffect(() => {
           if (districtExists) {
             setValue("district", location.district);
           } else {
-            // District not in list, use manual entry
             setValue("district", MANUAL_ENTRY);
             setValue("manualDistrict", location.district);
           }
           
           clearErrors("pincode");
           
-          const isKerala = isKeralaLocation(location.state);
-          
           toast.success(
             <div>
               <p className="font-semibold">📍 {location.district}, {location.state}</p>
               <p className="text-xs mt-1">
-                {isKerala ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
+                {isKeralaLocation(location.state) ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
               </p>
             </div>
           );
         } else {
-          // State not in list, use manual entry
           setValue("state", MANUAL_ENTRY);
           setValue("manualState", location.state);
           setValue("district", MANUAL_ENTRY);
@@ -269,12 +251,11 @@ useEffect(() => {
           
           clearErrors("pincode");
           
-          const isKerala = isKeralaLocation(location.state);
           toast.success(
             <div>
               <p className="font-semibold">📍 {location.district}, {location.state}</p>
               <p className="text-xs mt-1">
-                {isKerala ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
+                {isKeralaLocation(location.state) ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
               </p>
             </div>
           );
@@ -309,7 +290,6 @@ useEffect(() => {
       const paymentAmount = paymentMethod === "online" ? total : 100;
       setQrCodeValue(generateUpiLink(paymentAmount));
       
-      // Prepare order data with actual location values
       const orderData = {
         ...data,
         actualState: getActualState(),
@@ -388,20 +368,16 @@ useEffect(() => {
   const showManualStateInput = isManualEntry(watchState);
   const showManualDistrictInput = isManualEntry(watchDistrict);
 
-  // Get shipping badge text
- // Replace the getShippingBadgeText function with this:
-const getShippingBadgeText = () => {
-  const actualState = getActualState();
-  if (!actualState) return "";
-  
-  if (paymentMethod === "online") {
-    return isKeralaLocation(actualState) ? "FREE shipping" : "+₹50 shipping";
-  } else {
+  const getShippingBadgeText = () => {
+    const actualState = getActualState();
+    if (!actualState) return "";
     
-      return "+₹100 COD charge";
-   
-  }
-};
+    if (paymentMethod === "online") {
+      return isKeralaLocation(actualState) ? "FREE shipping" : "+₹50 shipping";
+    } else {
+      return isKeralaLocation(actualState) ? "+₹100 COD" : "+₹150 total";
+    }
+  };
 
   return (
     <>
@@ -853,17 +829,19 @@ const getShippingBadgeText = () => {
                           </div>
                           <p className="text-xs text-[#6b7280] mt-0.5">
                             Pay ₹100 advance + rest on delivery
-                            {getActualState()}
+                            {getActualState() && !isKeralaLocation(getActualState()!) && " (+₹50 shipping)"}
                           </p>
                         </div>
                       </label>
                     </div>
                   </div>
+                  
                   <div className="px-4">
                     <p className="text-md font-semibold">
                       {deliveryTime}
                     </p>
                   </div>
+                  
                   {/* Policy notice */}
                   <div className="flex items-start gap-2.5 bg-[#fffbeb] border border-[#fde68a] rounded-lg px-4 py-3">
                     <AlertCircle className="w-4 h-4 text-[#d97706] shrink-0 mt-0.5" />
