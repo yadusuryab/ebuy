@@ -389,15 +389,19 @@ useEffect(() => {
   const showManualDistrictInput = isManualEntry(watchDistrict);
 
   // Get shipping badge text
-  const getShippingBadgeText = () => {
-    const actualState = getActualState();
-    if (!actualState) return "";
-    if (paymentMethod === "online") {
-      return isKeralaLocation(actualState) ? "FREE shipping" : "+₹50 shipping";
-    } else {
-      return isKeralaLocation(actualState) ? "+₹100 extra" : "+₹150 extra";
-    }
-  };
+ // Replace the getShippingBadgeText function with this:
+const getShippingBadgeText = () => {
+  const actualState = getActualState();
+  if (!actualState) return "";
+  
+  if (paymentMethod === "online") {
+    return isKeralaLocation(actualState) ? "FREE shipping" : "+₹50 shipping";
+  } else {
+    
+      return "+₹100 COD charge";
+   
+  }
+};
 
   return (
     <>
@@ -849,7 +853,7 @@ useEffect(() => {
                           </div>
                           <p className="text-xs text-[#6b7280] mt-0.5">
                             Pay ₹100 advance + rest on delivery
-                            {getActualState() && !isKeralaLocation(getActualState()!) && " (+₹50 outside Kerala)"}
+                            {getActualState()}
                           </p>
                         </div>
                       </label>
