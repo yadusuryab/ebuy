@@ -1,17 +1,24 @@
 // app/checkout/page.tsx
 "use client";
 
-import { AlertCircle, ChevronDown, ChevronUp, Loader2, Lock, Scan, Shield, Truck } from "lucide-react";
-import { useState, useEffect } from "react";
+import { AlertCircle, ChevronDown, ChevronUp, Loader2, Lock, Scan, Shield, Truck, Search } from "lucide-react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { z } from "zod";
-import { checkoutSchema } from "@/lib/validations";
 import { QRCodeCanvas } from "qrcode.react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { Select } from "@/components/ui/select";
+import { 
+  getAllStates, 
+  getDistrictsByState, 
+  validatePincode, 
+  getLocationFromPincode,
+  states as statesData
+} from "@/lib/location";
 
 type CartItem = {
   _id: string;
@@ -23,16 +30,62 @@ type CartItem = {
   image: string;
 };
 
-type FormData = z.infer<typeof checkoutSchema>;
+// Manual entry constant
+const MANUAL_ENTRY = "Other (Manual Entry)";
+
+// Extended checkout schema with manual entry support
+const checkoutSchemaExtended = z.object({
+  customerName: z.string().min(3, "Name must be at least 3 characters"),
+  phoneNumber: z.string().min(10, "Valid phone number required").max(15),
+  alternatePhone: z.string().optional(),
+  instagramId: z.string().optional(),
+  address: z.string().min(10, "Please enter complete address"),
+  state: z.string().min(1, "Please select state"),
+  district: z.string().min(1, "Please select district"),
+  manualState: z.string().optional(),
+  manualDistrict: z.string().optional(),
+  pincode: z.string()
+    .min(6, "Pincode must be 6 digits")
+    .max(6)
+    .regex(/^[1-9][0-9]{5}$/, "Invalid pincode format"),
+  landmark: z.string().optional(),
+}).refine((data) => {
+  // If manual entry selected, require manual fields
+  if (data.state === MANUAL_ENTRY) {
+    return !!data.manualState && data.manualState.length >= 2;
+  }
+  return true;
+}, {
+  message: "Please enter state name",
+  path: ["manualState"],
+}).refine((data) => {
+  if (data.district === MANUAL_ENTRY) {
+    return !!data.manualDistrict && data.manualDistrict.length >= 2;
+  }
+  return true;
+}, {
+  message: "Please enter district name",
+  path: ["manualDistrict"],
+});
+
+type FormData = z.infer<typeof checkoutSchemaExtended>;
+
+// Helper to check if a value is manual entry
+const isManualEntry = (value: string): boolean => value === MANUAL_ENTRY;
+
+// Helper to check if location is Kerala
+const isKeralaLocation = (state: string): boolean => {
+  return state?.toLowerCase() === "kerala";
+};
 
 // ── Floating label input ──────────────────────────────────────────────────────
 function Field({
-  label, id, error, children,
-}: { label: string; id: string; error?: string; children: React.ReactNode }) {
+  label, id, error, required, children,
+}: { label: string; id: string; error?: string; required?: boolean; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
       <label htmlFor={id} className="block text-[11px] font-semibold tracking-[0.08em] uppercase text-[#6b7280]">
-        {label}
+        {label} {required && <span className="text-red-500">*</span>}
       </label>
       {children}
       {error && <p className="text-[11px] text-red-500 mt-0.5">{error}</p>}
@@ -56,25 +109,183 @@ export default function CheckoutPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
   const [summaryOpen, setSummaryOpen] = useState(false);
+  const [isLoadingPincode, setIsLoadingPincode] = useState(false);
+  
   const router = useRouter();
 
-  const { register, handleSubmit, formState: { errors } } = useForm<FormData>({
-    resolver: zodResolver(checkoutSchema),
+  const { register, handleSubmit, formState: { errors }, control, watch, setValue, setError, clearErrors } = useForm<FormData>({
+    resolver: zodResolver(checkoutSchemaExtended),
+    defaultValues: {
+      state: "",
+      district: "",
+      pincode: "",
+      manualState: "",
+      manualDistrict: "",
+    }
   });
 
-  useEffect(() => {
-    setCart(JSON.parse(localStorage.getItem("cart") || "[]"));
+  const watchState = watch("state");
+  const watchDistrict = watch("district");
+  const watchPincode = watch("pincode");
+  const watchManualState = watch("manualState");
+  const watchManualDistrict = watch("manualDistrict");
+
+  // Get all states including manual option
+  const states = useMemo(() => {
+    const allStates = getAllStates();
+    return [...allStates, MANUAL_ENTRY];
   }, []);
 
+  // Get districts based on selected state
+  const districts = useMemo(() => {
+    if (!watchState) return [];
+    if (isManualEntry(watchState)) return [MANUAL_ENTRY];
+    const stateDistricts = getDistrictsByState(watchState);
+    return [...stateDistricts, MANUAL_ENTRY];
+  }, [watchState]);
+
+  // Get actual location values (manual or selected)
+  const getActualState = useCallback(() => {
+    return isManualEntry(watchState) ? watchManualState : watchState;
+  }, [watchState, watchManualState]);
+
+  const getActualDistrict = useCallback(() => {
+    return isManualEntry(watchDistrict) ? watchManualDistrict : watchDistrict;
+  }, [watchDistrict, watchManualDistrict]);
+
+  // Reset district when state changes
   useEffect(() => {
-    if (paymentMethod === "online") {
-      setShippingCharges(0);
-      setDeliveryTime("Kerala: 2–3 days · Outside Kerala: 6–7 days");
-    } else {
-      setShippingCharges(100);
-      setDeliveryTime("Delivery in 7 days");
+    if (watchState) {
+      setValue("district", "");
+      setValue("manualDistrict", "");
     }
-  }, [paymentMethod]);
+  }, [watchState, setValue]);
+
+  // Calculate shipping based on location
+  useEffect(() => {
+    const calculateShipping = () => {
+      const actualState = getActualState();
+      
+      if (!actualState) {
+        // Default values before location is selected
+        setShippingCharges(0);
+        setDeliveryTime("Select location for delivery estimate");
+        return;
+      }
+      
+      if (paymentMethod === "online") {
+        if (isKeralaLocation(actualState)) {
+          setShippingCharges(0);
+          setDeliveryTime("Kerala: 2–3 days");
+        } else {
+          setShippingCharges(50);
+          setDeliveryTime("Outside Kerala: 6–7 days");
+        }
+      } else {
+        // COD charges
+        if (isKeralaLocation(actualState)) {
+          setShippingCharges(100);
+          setDeliveryTime("Delivery in 7 days");
+        } else {
+          setShippingCharges(150); // 100 COD + 50 outside Kerala
+          setDeliveryTime("Delivery in 7-9 days");
+        }
+      }
+    };
+    
+    calculateShipping();
+  }, [paymentMethod, watchState, watchManualState, getActualState]);
+
+  // Handle pincode lookup
+  const handlePincodeLookup = useCallback(() => {
+    const pincode = watchPincode;
+    if (!pincode || pincode.length !== 6) return;
+
+    if (!validatePincode(pincode)) {
+      setError("pincode", { message: "Invalid pincode format" });
+      return;
+    }
+
+    setIsLoadingPincode(true);
+    
+    // Simulate async behavior for smooth UX
+    setTimeout(() => {
+      const location = getLocationFromPincode(pincode);
+      
+      if (location) {
+        // Check if state exists in our list
+        const stateExists = statesData.some(s => 
+          s.name.toLowerCase() === location.state.toLowerCase()
+        );
+        
+        if (stateExists) {
+          setValue("state", location.state);
+          
+          // Get districts for this state
+          const stateDistricts = getDistrictsByState(location.state);
+          
+          // Check if district exists
+          const districtExists = stateDistricts.some(
+            d => d.toLowerCase() === location.district.toLowerCase()
+          );
+          
+          if (districtExists) {
+            setValue("district", location.district);
+          } else {
+            // District not in list, use manual entry
+            setValue("district", MANUAL_ENTRY);
+            setValue("manualDistrict", location.district);
+          }
+          
+          clearErrors("pincode");
+          
+          const isKerala = isKeralaLocation(location.state);
+          
+          toast.success(
+            <div>
+              <p className="font-semibold">📍 {location.district}, {location.state}</p>
+              <p className="text-xs mt-1">
+                {isKerala ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
+              </p>
+            </div>
+          );
+        } else {
+          // State not in list, use manual entry
+          setValue("state", MANUAL_ENTRY);
+          setValue("manualState", location.state);
+          setValue("district", MANUAL_ENTRY);
+          setValue("manualDistrict", location.district);
+          
+          clearErrors("pincode");
+          
+          const isKerala = isKeralaLocation(location.state);
+          toast.success(
+            <div>
+              <p className="font-semibold">📍 {location.district}, {location.state}</p>
+              <p className="text-xs mt-1">
+                {isKerala ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
+              </p>
+            </div>
+          );
+        }
+      } else {
+        toast.info("Pincode not found in our database. Please select or enter location manually.");
+      }
+      
+      setIsLoadingPincode(false);
+    }, 300);
+  }, [watchPincode, setValue, setError, clearErrors]);
+
+  useEffect(() => {
+    const savedCart = localStorage.getItem("cart");
+    if (savedCart) {
+      try {
+        setCart(JSON.parse(savedCart));
+      } catch {
+        setCart([]);
+      }
+    }
+  }, []);
 
   const subtotal = cart.reduce((a, i) => a + i.salesPrice * i.cartQty, 0);
   const total = subtotal + shippingCharges;
@@ -84,17 +295,37 @@ export default function CheckoutPage() {
 
   const handleOrder = async (data: FormData) => {
     if (!showPayment) {
-      setQrCodeValue(generateUpiLink(paymentMethod === "online" ? total : 100));
-      localStorage.setItem("pendingOrder", JSON.stringify({ ...data, cart, total, paymentMethod }));
+      const paymentAmount = paymentMethod === "online" ? total : 100;
+      setQrCodeValue(generateUpiLink(paymentAmount));
+      
+      // Prepare order data with actual location values
+      const orderData = {
+        ...data,
+        actualState: getActualState(),
+        actualDistrict: getActualDistrict(),
+        cart,
+        total,
+        paymentMethod
+      };
+      
+      localStorage.setItem("pendingOrder", JSON.stringify(orderData));
       setShowPayment(true);
       window.scrollTo({ top: 0, behavior: "smooth" });
       return;
     }
+    
     setIsSubmitting(true);
     try {
       const orderData = {
         ...data,
-        products: cart.map((p) => ({ product: p._id, quantity: p.cartQty, size: p.size || null, color: p.color || null })),
+        actualState: getActualState(),
+        actualDistrict: getActualDistrict(),
+        products: cart.map((p) => ({ 
+          product: p._id, 
+          quantity: p.cartQty, 
+          size: p.size || null, 
+          color: p.color || null 
+        })),
         paymentMode: paymentMethod,
         shippingCharges,
         totalAmount: total,
@@ -103,12 +334,15 @@ export default function CheckoutPage() {
         paymentStatus: true,
         transactionId,
       };
+      
       const res = await fetch("/api/create-order", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(orderData),
       });
+      
       if (!res.ok) throw new Error();
+      
       const respdata = await res.json();
       localStorage.removeItem("cart");
       localStorage.removeItem("pendingOrder");
@@ -140,6 +374,20 @@ export default function CheckoutPage() {
     );
   }
 
+  const showManualStateInput = isManualEntry(watchState);
+  const showManualDistrictInput = isManualEntry(watchDistrict);
+
+  // Get shipping badge text
+  const getShippingBadgeText = () => {
+    const actualState = getActualState();
+    if (!actualState) return "";
+    if (paymentMethod === "online") {
+      return isKeralaLocation(actualState) ? "FREE shipping" : "+₹50 shipping";
+    } else {
+      return isKeralaLocation(actualState) ? "+₹100 extra" : "+₹150 extra";
+    }
+  };
+
   return (
     <>
       <style>{`
@@ -150,13 +398,12 @@ export default function CheckoutPage() {
           to   { opacity: 1; transform: translateY(0); }
         }
         .slide-down { animation: slideDown 0.25s ease both; }
-        /* hide default number input arrows */
         input[type=number]::-webkit-inner-spin-button,
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
       `}</style>
 
       <div className="checkout-root min-h-screen bg-[#f3f4f6]">
-        {/* ── Top secure bar ── */}
+        {/* Top secure bar */}
         <div className="bg-white border-b border-[#e5e7eb] px-4 py-2.5 flex items-center justify-between">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 bg-primary rounded flex items-center justify-center">
@@ -172,7 +419,7 @@ export default function CheckoutPage() {
 
         <div className="max-w-5xl mx-auto lg:flex lg:min-h-[calc(100vh-45px)]">
 
-          {/* ══ LEFT PANEL — dark navy (order summary) ══════════════════ */}
+          {/* LEFT PANEL — dark navy (order summary) */}
           <div className="bg-primary lg:w-[380px] lg:min-h-full lg:shrink-0">
 
             {/* Mobile: collapsible summary pill */}
@@ -196,7 +443,7 @@ export default function CheckoutPage() {
             {/* Summary content */}
             <div className={`${summaryOpen ? "slide-down" : "hidden"} lg:block p-5 lg:p-8 lg:sticky lg:top-0`}>
               {/* Items */}
-              <div className="space-y-4 mb-6">
+              <div className="space-y-4 mb-6 max-h-[300px] overflow-y-auto">
                 {cart.map((item) => (
                   <div key={item._id} className="flex gap-3">
                     <div className="relative shrink-0">
@@ -242,8 +489,22 @@ export default function CheckoutPage() {
               {/* Delivery */}
               <div className="mt-5 flex items-start gap-2 text-white/40 text-xs">
                 <Truck className="w-3.5 h-3.5 mt-0.5 shrink-0" />
-                <span>{deliveryTime}</span>
+                <span>{deliveryTime || "Select location for estimate"}</span>
               </div>
+
+              {/* Location summary if selected */}
+              {getActualState() && (
+                <div className="mt-3 flex items-start gap-2 text-white/30 text-[11px]">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5 mt-0.5 shrink-0">
+                    <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z"/>
+                    <circle cx="12" cy="9" r="2.5"/>
+                  </svg>
+                  <span>
+                    {getActualDistrict()}, {getActualState()}
+                    {isKeralaLocation(getActualState()!) && " ✓ Kerala"}
+                  </span>
+                </div>
+              )}
 
               {/* Trust badges */}
               <div className="mt-6 pt-5 border-t border-white/[0.08] flex items-center gap-4">
@@ -257,7 +518,7 @@ export default function CheckoutPage() {
             </div>
           </div>
 
-          {/* ══ RIGHT PANEL — white form area ═══════════════════════════ */}
+          {/* RIGHT PANEL — white form area */}
           <div className="flex-1 bg-white lg:border-l lg:border-[#e5e7eb]">
 
             {/* Step indicator */}
@@ -298,7 +559,7 @@ export default function CheckoutPage() {
 
             <div className="px-5 lg:px-10 py-7">
 
-              {/* ── PAYMENT VIEW ── */}
+              {/* PAYMENT VIEW */}
               {showPayment ? (
                 <div className="max-w-md slide-down space-y-6">
                   <div>
@@ -352,7 +613,7 @@ export default function CheckoutPage() {
 
                   {/* Transaction ID */}
                   <div className="space-y-2">
-                    <Field label="Transaction ID *" id="txn" error={!transactionId.trim() && isSubmitting ? "Required" : undefined}>
+                    <Field label="Transaction ID" id="txn" required error={!transactionId.trim() && isSubmitting ? "Required" : undefined}>
                       <input
                         id="txn"
                         value={transactionId}
@@ -388,7 +649,7 @@ export default function CheckoutPage() {
                   </div>
                 </div>
               ) : (
-                /* ── FORM VIEW ── */
+                /* FORM VIEW */
                 <form onSubmit={handleSubmit(handleOrder)} className="max-w-md space-y-7">
 
                   {/* Shipping */}
@@ -396,13 +657,13 @@ export default function CheckoutPage() {
                     <h2 className="text-base font-semibold text-[#111827] mb-5">Shipping Information</h2>
                     <div className="space-y-4">
 
-                      <Field label="Full Name *" id="customerName" error={errors.customerName?.message}>
+                      <Field label="Full Name" id="customerName" required error={errors.customerName?.message}>
                         <input id="customerName" {...register("customerName")}
                           placeholder="Your Name" className={inputCls(errors.customerName?.message)} />
                       </Field>
 
                       <div className="grid grid-cols-2 gap-3">
-                        <Field label="Phone *" id="phoneNumber" error={errors.phoneNumber?.message}>
+                        <Field label="Phone" id="phoneNumber" required error={errors.phoneNumber?.message}>
                           <input id="phoneNumber" {...register("phoneNumber")}
                             placeholder="Phone Number" className={inputCls(errors.phoneNumber?.message)} />
                         </Field>
@@ -417,26 +678,100 @@ export default function CheckoutPage() {
                           placeholder="Instagram ID" className={inputCls()} />
                       </Field>
 
-                      <Field label="Full Address *" id="address" error={errors.address?.message}>
+                      <Field label="Full Address" id="address" required error={errors.address?.message}>
                         <textarea id="address" {...register("address")} rows={3}
                           placeholder="House no., Building, Street, Area…"
                           className={`${inputCls(errors.address?.message)} !h-auto py-2 resize-none`} />
                       </Field>
 
-                      <div className="grid grid-cols-3 gap-3">
-                        <Field label="District *" id="district" error={errors.district?.message}>
-                          <input id="district" {...register("district")}
-                            placeholder="District" className={inputCls(errors.district?.message)} />
+                      {/* Pincode with auto-lookup */}
+                      <Field label="Pincode" id="pincode" required error={errors.pincode?.message}>
+                        <div className="relative">
+                          <input 
+                            id="pincode" 
+                            {...register("pincode")}
+                            placeholder="6-digit pincode"
+                            maxLength={6}
+                            className={`${inputCls(errors.pincode?.message)} pr-10`}
+                          />
+                          <button
+                            type="button"
+                            onClick={handlePincodeLookup}
+                            disabled={isLoadingPincode || !watchPincode || watchPincode.length !== 6}
+                            className="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 
+                              text-[#6b7280] hover:text-primary disabled:opacity-40 
+                              disabled:cursor-not-allowed transition-colors rounded-md
+                              hover:bg-[#f3f4f6]"
+                            title="Lookup pincode"
+                          >
+                            {isLoadingPincode ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <Search className="w-4 h-4" />
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-[10px] text-[#6b7280] mt-1">
+                          Enter pincode to auto-fill state & district
+                        </p>
+                      </Field>
+
+                      <div className="grid grid-cols-2 gap-3">
+                        <Field label="State" id="state" required error={errors.state?.message}>
+                          <Controller
+                            name="state"
+                            control={control}
+                            render={({ field }) => (
+                              <Select
+                                {...field}
+                                options={states.map((s) => ({ value: s, label: s }))}
+                                placeholder="Select state"
+                                className={errors.state?.message ? "border-red-400 bg-red-50/30" : ""}
+                              />
+                            )}
+                          />
                         </Field>
-                        <Field label="State *" id="state" error={errors.state?.message}>
-                          <input id="state" {...register("state")}
-                            placeholder="State" className={inputCls(errors.state?.message)} />
-                        </Field>
-                        <Field label="Pincode *" id="pincode" error={errors.pincode?.message}>
-                          <input id="pincode" {...register("pincode")}
-                            placeholder="Pincode" className={inputCls(errors.pincode?.message)} />
+
+                        <Field label="District" id="district" required error={errors.district?.message}>
+                          <Controller
+                            name="district"
+                            control={control}
+                            render={({ field }) => (
+                              <Select
+                                {...field}
+                                options={districts.map((d) => ({ value: d, label: d }))}
+                                placeholder={watchState ? "Select district" : "Select state first"}
+                                disabled={!watchState}
+                                className={errors.district?.message ? "border-red-400 bg-red-50/30" : ""}
+                              />
+                            )}
+                          />
                         </Field>
                       </div>
+
+                      {/* Manual State Input */}
+                      {showManualStateInput && (
+                        <Field label="Enter State Name" id="manualState" required error={errors.manualState?.message}>
+                          <input 
+                            id="manualState" 
+                            {...register("manualState")}
+                            placeholder="Enter your state"
+                            className={inputCls(errors.manualState?.message)}
+                          />
+                        </Field>
+                      )}
+
+                      {/* Manual District Input */}
+                      {showManualDistrictInput && (
+                        <Field label="Enter District Name" id="manualDistrict" required error={errors.manualDistrict?.message}>
+                          <input 
+                            id="manualDistrict" 
+                            {...register("manualDistrict")}
+                            placeholder="Enter your district"
+                            className={inputCls(errors.manualDistrict?.message)}
+                          />
+                        </Field>
+                      )}
 
                       <Field label="Landmark" id="landmark">
                         <input id="landmark" {...register("landmark")}
@@ -466,9 +801,14 @@ export default function CheckoutPage() {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-[#111827]">Online Payment</span>
-                            <span className="text-xs font-semibold text-[#22c55e] bg-[#f0fdf4] px-2 py-0.5 rounded-full">
-                              FREE shipping
-                            </span>
+                            {getActualState() && (
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
+                                ${getActualState() && isKeralaLocation(getActualState()!) 
+                                  ? "text-[#22c55e] bg-[#f0fdf4]" 
+                                  : "text-[#f59e0b] bg-[#fffbeb]"}`}>
+                                {getShippingBadgeText()}
+                              </span>
+                            )}
                           </div>
                           <p className="text-xs text-[#6b7280] mt-0.5">Pay via UPI, cards or wallets</p>
                         </div>
@@ -487,11 +827,19 @@ export default function CheckoutPage() {
                         <div className="flex-1">
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-[#111827]">Cash on Delivery</span>
-                            <span className="text-xs font-semibold text-[#f59e0b] bg-[#fffbeb] px-2 py-0.5 rounded-full">
-                              +₹100 extra
-                            </span>
+                            {getActualState() && (
+                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
+                                ${getActualState() && isKeralaLocation(getActualState()!) 
+                                  ? "text-[#f59e0b] bg-[#fffbeb]" 
+                                  : "text-[#ef4444] bg-[#fef2f2]"}`}>
+                                {getShippingBadgeText()}
+                              </span>
+                            )}
                           </div>
-                          <p className="text-xs text-[#6b7280] mt-0.5">Pay ₹100 advance + rest on delivery</p>
+                          <p className="text-xs text-[#6b7280] mt-0.5">
+                            Pay ₹100 advance + rest on delivery
+                            {getActualState() && !isKeralaLocation(getActualState()!) && " (+₹50 outside Kerala)"}
+                          </p>
                         </div>
                       </label>
                     </div>
@@ -513,7 +861,7 @@ export default function CheckoutPage() {
                   <Button
                     type="submit"
                     className="w-full"
-                  size={'lg'}
+                    size={'lg'}
                   >
                     <Lock className="w-4 h-4" />
                     Proceed to Payment →
