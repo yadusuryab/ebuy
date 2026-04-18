@@ -185,10 +185,10 @@ export default function CheckoutPage() {
         // COD charges
         if (isKeralaLocation(actualState)) {
           setShippingCharges(100);
-          setDeliveryTime("Delivery in 7 days");
+          setDeliveryTime("Kerala: 2–3 days");
         } else {
-          setShippingCharges(150); // 100 COD + 50 outside Kerala
-          setDeliveryTime("Delivery in 7-9 days");
+          setShippingCharges(100); // 100 COD + 50 outside Kerala
+          setDeliveryTime("Delivery in 6-7 days");
         }
       }
     };
