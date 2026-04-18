@@ -50,6 +50,7 @@ const checkoutSchemaExtended = z.object({
     .regex(/^[1-9][0-9]{5}$/, "Invalid pincode format"),
   landmark: z.string().optional(),
 }).refine((data) => {
+  // If manual entry selected, require manual fields
   if (data.state === MANUAL_ENTRY) {
     return !!data.manualState && data.manualState.length >= 2;
   }
@@ -109,6 +110,8 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [isLoadingPincode, setIsLoadingPincode] = useState(false);
+  const [onlineCharge, setOnlineCharge] = useState("")
+  const [codCharge, setcodCharge] = useState("")
   
   const router = useRouter();
 
@@ -160,44 +163,52 @@ export default function CheckoutPage() {
     }
   }, [watchState, setValue]);
 
-  // Calculate shipping based on location and payment method - FIXED
-  useEffect(() => {
-    const calculateShipping = () => {
-      const actualState = getActualState();
-      
-      if (!actualState || actualState === "") {
-        setShippingCharges(0);
-        setDeliveryTime("Select location for delivery estimate");
-        return;
-      }
-      
-      console.log("Calculating for:", { paymentMethod, actualState, isKerala: isKeralaLocation(actualState) });
-      
-      // Calculate shipping charges based on payment method AND location
-      if (paymentMethod === "online") {
-        // Online payment: Free shipping for Kerala, ₹50 for outside Kerala
-        if (isKeralaLocation(actualState)) {
-          setShippingCharges(0);
-          setDeliveryTime("Kerala: 2–3 days delivery");
-        } else {
-          setShippingCharges(50);
-          setDeliveryTime("Outside Kerala: 6–7 days delivery");
-        }
-      } else {
-        // COD payment: Additional charges apply
-        if (isKeralaLocation(actualState)) {
-          setShippingCharges(100); // ₹100 COD charge for Kerala
-          setDeliveryTime("Kerala: 2–3 days delivery");
-        } else {
-          setShippingCharges(150); // ₹100 COD + ₹50 outside Kerala
-          setDeliveryTime("Outside Kerala: 6–7 days delivery");
-        }
-      }
-    };
-    
-    calculateShipping();
-  }, [paymentMethod, watchState, watchManualState, getActualState]);
+  // Replace the existing useEffect for calculateShipping with this:
 
+// Calculate shipping based on location and payment method
+useEffect(() => {
+  const calculateShipping = () => {
+    const actualState = getActualState();
+    
+    if (!actualState) {
+      // Default values before location is selected
+      setShippingCharges(0);
+      setDeliveryTime("Select location for delivery estimate");
+      return;
+    }
+    
+    // Calculate shipping charges based on payment method AND location
+    if (paymentMethod === "online") {
+      // Online payment: Free shipping for Kerala, ₹50 for outside Kerala
+      if (isKeralaLocation(actualState)) {
+        setShippingCharges(0);
+        setDeliveryTime("Kerala: 2–3 days delivery");
+      } else {
+        setShippingCharges(50);
+        setDeliveryTime("Outside Kerala: 6–7 days delivery");
+      }
+    } else {
+      setShippingCharges(100);
+      // COD payment: Additional charges apply
+      if (isKeralaLocation(actualState)) {
+        // ₹100 COD charge for Kerala
+        setDeliveryTime("Kerala: 2–3 days delivery");
+      } else {
+        setDeliveryTime("Outside Kerala: 6–7 days delivery");
+      }
+    }
+  };
+  
+  calculateShipping();
+}, [paymentMethod, watchState, watchManualState, getActualState]);
+
+// Add this useEffect to reset district when state changes
+useEffect(() => {
+  if (watchState) {
+    setValue("district", "");
+    setValue("manualDistrict", "");
+  }
+}, [watchState, setValue]);
   // Handle pincode lookup
   const handlePincodeLookup = useCallback(() => {
     const pincode = watchPincode;
@@ -210,10 +221,12 @@ export default function CheckoutPage() {
 
     setIsLoadingPincode(true);
     
+    // Simulate async behavior for smooth UX
     setTimeout(() => {
       const location = getLocationFromPincode(pincode);
       
       if (location) {
+        // Check if state exists in our list
         const stateExists = statesData.some(s => 
           s.name.toLowerCase() === location.state.toLowerCase()
         );
@@ -221,7 +234,10 @@ export default function CheckoutPage() {
         if (stateExists) {
           setValue("state", location.state);
           
+          // Get districts for this state
           const stateDistricts = getDistrictsByState(location.state);
+          
+          // Check if district exists
           const districtExists = stateDistricts.some(
             d => d.toLowerCase() === location.district.toLowerCase()
           );
@@ -229,21 +245,25 @@ export default function CheckoutPage() {
           if (districtExists) {
             setValue("district", location.district);
           } else {
+            // District not in list, use manual entry
             setValue("district", MANUAL_ENTRY);
             setValue("manualDistrict", location.district);
           }
           
           clearErrors("pincode");
           
+          const isKerala = isKeralaLocation(location.state);
+          
           toast.success(
             <div>
               <p className="font-semibold">📍 {location.district}, {location.state}</p>
               <p className="text-xs mt-1">
-                {isKeralaLocation(location.state) ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
+                {isKerala ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
               </p>
             </div>
           );
         } else {
+          // State not in list, use manual entry
           setValue("state", MANUAL_ENTRY);
           setValue("manualState", location.state);
           setValue("district", MANUAL_ENTRY);
@@ -251,11 +271,12 @@ export default function CheckoutPage() {
           
           clearErrors("pincode");
           
+          const isKerala = isKeralaLocation(location.state);
           toast.success(
             <div>
               <p className="font-semibold">📍 {location.district}, {location.state}</p>
               <p className="text-xs mt-1">
-                {isKeralaLocation(location.state) ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
+                {isKerala ? "✓ Free shipping applicable" : "ℹ️ Additional ₹50 shipping for outside Kerala"}
               </p>
             </div>
           );
@@ -290,6 +311,7 @@ export default function CheckoutPage() {
       const paymentAmount = paymentMethod === "online" ? total : 100;
       setQrCodeValue(generateUpiLink(paymentAmount));
       
+      // Prepare order data with actual location values
       const orderData = {
         ...data,
         actualState: getActualState(),
@@ -368,16 +390,26 @@ export default function CheckoutPage() {
   const showManualStateInput = isManualEntry(watchState);
   const showManualDistrictInput = isManualEntry(watchDistrict);
 
-  const getShippingBadgeText = () => {
-    const actualState = getActualState();
-    if (!actualState) return "";
-    
-    if (paymentMethod === "online") {
-      return isKeralaLocation(actualState) ? "FREE shipping" : "+₹50 shipping";
-    } else {
-      return isKeralaLocation(actualState) ? "+₹100 COD" : "+₹150 total";
-    }
-  };
+  // Get shipping badge text
+ // Replace the getShippingBadgeText function with this:
+const getOnlineBadgeText = () => {
+  const actualState = getActualState();
+  if (!actualState) return "";
+  
+
+   return isKeralaLocation(actualState) ? "FREE SHIPPING" : "Extra ₹50 shipping";
+ 
+};
+
+const getCodBadgeText = () => {
+
+  
+ 
+      return "Extra ₹100 shipping";
+   
+ 
+};
+
 
   return (
     <>
@@ -797,7 +829,7 @@ export default function CheckoutPage() {
                                 ${getActualState() && isKeralaLocation(getActualState()!) 
                                   ? "text-[#22c55e] bg-[#f0fdf4]" 
                                   : "text-[#f59e0b] bg-[#fffbeb]"}`}>
-                                {getShippingBadgeText()}
+                                {getOnlineBadgeText()}
                               </span>
                             )}
                           </div>
@@ -823,25 +855,23 @@ export default function CheckoutPage() {
                                 ${getActualState() && isKeralaLocation(getActualState()!) 
                                   ? "text-[#f59e0b] bg-[#fffbeb]" 
                                   : "text-[#ef4444] bg-[#fef2f2]"}`}>
-                                {getShippingBadgeText()}
+                                {getCodBadgeText()}
                               </span>
                             )}
                           </div>
                           <p className="text-xs text-[#6b7280] mt-0.5">
                             Pay ₹100 advance + rest on delivery
-                            {getActualState() && !isKeralaLocation(getActualState()!) && " (+₹50 shipping)"}
+                            {getActualState()}
                           </p>
                         </div>
                       </label>
                     </div>
                   </div>
-                  
                   <div className="px-4">
                     <p className="text-md font-semibold">
                       {deliveryTime}
                     </p>
                   </div>
-                  
                   {/* Policy notice */}
                   <div className="flex items-start gap-2.5 bg-[#fffbeb] border border-[#fde68a] rounded-lg px-4 py-3">
                     <AlertCircle className="w-4 h-4 text-[#d97706] shrink-0 mt-0.5" />
