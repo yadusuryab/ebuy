@@ -182,12 +182,13 @@ export default function CheckoutPage() {
           setDeliveryTime("Outside Kerala: 6–7 days");
         }
       } else {
+        setShippingCharges(100);
         // COD charges
         if (isKeralaLocation(actualState)) {
-          setShippingCharges(100);
+        
           setDeliveryTime("Kerala: 2–3 days");
         } else {
-          setShippingCharges(100); // 100 COD + 50 outside Kerala
+          // 100 COD + 50 outside Kerala
           setDeliveryTime("Delivery in 6-7 days");
         }
       }
@@ -844,7 +845,11 @@ export default function CheckoutPage() {
                       </label>
                     </div>
                   </div>
-
+                  <div className="px-4">
+                    <p className="text-md font-semibold">
+                      {deliveryTime}
+                    </p>
+                  </div>
                   {/* Policy notice */}
                   <div className="flex items-start gap-2.5 bg-[#fffbeb] border border-[#fde68a] rounded-lg px-4 py-3">
                     <AlertCircle className="w-4 h-4 text-[#d97706] shrink-0 mt-0.5" />
