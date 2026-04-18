@@ -161,42 +161,52 @@ export default function CheckoutPage() {
     }
   }, [watchState, setValue]);
 
-  // Calculate shipping based on location
-  useEffect(() => {
-    const calculateShipping = () => {
-      const actualState = getActualState();
-      
-      if (!actualState) {
-        // Default values before location is selected
-        setShippingCharges(0);
-        setDeliveryTime("Select location for delivery estimate");
-        return;
-      }
-      
-      if (paymentMethod === "online") {
-        if (isKeralaLocation(actualState)) {
-          setShippingCharges(0);
-          setDeliveryTime("Kerala: 2–3 days");
-        } else {
-          setShippingCharges(50);
-          setDeliveryTime("Outside Kerala: 6–7 days");
-        }
-      } else {
-        setShippingCharges(100);
-        // COD charges
-        if (isKeralaLocation(actualState)) {
-        
-          setDeliveryTime("Kerala: 2–3 days");
-        } else {
-          // 100 COD + 50 outside Kerala
-          setDeliveryTime("Delivery in 6-7 days");
-        }
-      }
-    };
-    
-    calculateShipping();
-  }, [paymentMethod, watchState, watchManualState, getActualState]);
+  // Replace the existing useEffect for calculateShipping with this:
 
+// Calculate shipping based on location and payment method
+useEffect(() => {
+  const calculateShipping = () => {
+    const actualState = getActualState();
+    
+    if (!actualState) {
+      // Default values before location is selected
+      setShippingCharges(0);
+      setDeliveryTime("Select location for delivery estimate");
+      return;
+    }
+    
+    // Calculate shipping charges based on payment method AND location
+    if (paymentMethod === "online") {
+      // Online payment: Free shipping for Kerala, ₹50 for outside Kerala
+      if (isKeralaLocation(actualState)) {
+        setShippingCharges(0);
+        setDeliveryTime("Kerala: 2–3 days delivery");
+      } else {
+        setShippingCharges(50);
+        setDeliveryTime("Outside Kerala: 6–7 days delivery");
+      }
+    } else {
+      // COD payment: Additional charges apply
+      if (isKeralaLocation(actualState)) {
+        setShippingCharges(100); // ₹100 COD charge for Kerala
+        setDeliveryTime("Kerala: 2–3 days delivery");
+      } else {
+        setShippingCharges(150); // ₹100 COD + ₹50 outside Kerala
+        setDeliveryTime("Outside Kerala: 6–7 days delivery");
+      }
+    }
+  };
+  
+  calculateShipping();
+}, [paymentMethod, watchState, watchManualState, getActualState]);
+
+// Add this useEffect to reset district when state changes
+useEffect(() => {
+  if (watchState) {
+    setValue("district", "");
+    setValue("manualDistrict", "");
+  }
+}, [watchState, setValue]);
   // Handle pincode lookup
   const handlePincodeLookup = useCallback(() => {
     const pincode = watchPincode;
