@@ -15,12 +15,31 @@ export async function POST(req: NextRequest) {
         instaId,
         rating,
         review,
-        _createdAt
+        _createdAt,
+        images[]{
+          asset->{
+            _id,
+            url
+          },
+          alt,
+          caption
+        }
       }`,
       { productId }
     );
 
-    return NextResponse.json({ success: true, reviews });
+    // Format the response to make image URLs more accessible
+    const formattedReviews = reviews.map((review: any) => ({
+      ...review,
+      images: review.images?.map((image: any) => ({
+        url: image.asset?.url,
+        alt: image.alt || '',
+        caption: image.caption || '',
+        id: image.asset?._id
+      })) || []
+    }));
+
+    return NextResponse.json({ success: true, reviews: formattedReviews });
   } catch (err) {
     console.error("Get Reviews Error:", err);
     return NextResponse.json({ success: false, message: "Server error" }, { status: 500 });
