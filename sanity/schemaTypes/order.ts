@@ -101,7 +101,7 @@ export default {
       of: [
         {
           type: 'object',
-          name: 'orderItem',
+          name: 'products',
           title: 'Order Item',
           preview: {
             select: {
