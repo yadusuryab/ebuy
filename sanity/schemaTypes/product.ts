@@ -1,156 +1,248 @@
+// sanity/schemas/order.ts
+
 export default {
-  name: 'product',
-  title: 'Product',
+  name: 'order',
+  title: 'Order',
   type: 'document',
-  fields: [
+  orderings: [
     {
-      name: 'name',
-      title: 'Product Name',
+      title: 'Newest First',
+      name: 'orderedAtDesc',
+      by: [{ field: 'orderedAt', direction: 'desc' }],
+    },
+  ],
+  preview: {
+    select: {
+      title: 'customerName',
+      subtitle: 'orderStatus',
+      description: 'totalAmount',
+    },
+    prepare({ title, subtitle, description }: any) {
+      const statusEmoji: Record<string, string> = {
+        pending: '🕐',
+        processing: '⚙️',
+        shipped: '🚚',
+        delivered: '✅',
+        cancelled: '❌',
+      };
+      return {
+        title: title,
+        subtitle: `${statusEmoji[subtitle] ?? ''} ${subtitle?.toUpperCase()} · ₹${description ?? 0}`,
+      };
+    },
+  },
+  fields: [
+    // ── Customer ────────────────────────────────────────────────────────────
+    {
+      name: 'customerName',
+      title: 'Customer Name',
+      type: 'string',
+      validation: (Rule: any) => Rule.required().min(2),
+    },
+    {
+      name: 'phoneNumber',
+      title: 'Phone Number',
+      type: 'string',
+      validation: (Rule: any) => Rule.required().min(10).max(15),
+    },
+    {
+      name: 'alternatePhone',
+      title: 'Alternate Phone',
+      type: 'string',
+    },
+    {
+      name: 'instagramId',
+      title: 'Instagram ID',
+      type: 'string',
+    },
+
+    // ── Address ─────────────────────────────────────────────────────────────
+    {
+      name: 'address',
+      title: 'Address',
+      type: 'text',
+      rows: 3,
+      validation: (Rule: any) => Rule.required().min(10),
+    },
+    {
+      name: 'landmark',
+      title: 'Landmark',
+      type: 'string',
+    },
+    {
+      name: 'district',
+      title: 'District',
       type: 'string',
       validation: (Rule: any) => Rule.required(),
     },
     {
-      name: 'images', // KEEP this name for backward compatibility
-      title: 'Product Images & Videos',
+      name: 'state',
+      title: 'State',
+      type: 'string',
+      validation: (Rule: any) => Rule.required(),
+    },
+    {
+      name: 'pincode',
+      title: 'Pincode',
+      type: 'string',
+      validation: (Rule: any) =>
+        Rule.required().regex(/^[1-9][0-9]{5}$/, {
+          name: 'pincode',
+          invert: false,
+        }),
+    },
+
+    // ── Products ─────────────────────────────────────────────────────────────
+    {
+      name: 'products',
+      title: 'Ordered Products',
       type: 'array',
+      validation: (Rule: any) => Rule.required().min(1),
       of: [
-        { 
-          type: 'image', 
-          options: { hotspot: true },
-          fields: [
-            {
-              name: 'alt',
-              title: 'Alternative Text',
-              type: 'string',
-              description: 'Important for SEO and accessibility',
-            }
-          ]
-        },
         {
           type: 'object',
-          name: 'video',
-          title: 'Video',
-          fields: [
-            {
-              name: 'videoFile',
-              title: 'Video File',
-              type: 'file',
-              options: {
-                accept: 'video/*',
-              },
-            },
-            {
-              name: 'videoUrl',
-              title: 'Video URL (YouTube/Vimeo)',
-              type: 'url',
-              description: 'Optional: For YouTube/Vimeo embeds',
-            },
-            {
-              name: 'poster',
-              title: 'Video Poster',
-              type: 'image',
-              options: {
-                hotspot: true,
-              },
-              description: 'Thumbnail image for the video',
-            },
-            {
-              name: 'title',
-              title: 'Video Title (Optional)',
-              type: 'string',
-            },
-            {
-              name: 'alt',
-              title: 'Alternative Text',
-              type: 'string',
-              description: 'Description for accessibility',
-            },
-          ],
+          name: 'orderItem',
+          title: 'Order Item',
           preview: {
             select: {
-              title: 'title',
-              media: 'poster',
-              subtitle: 'videoUrl',
+              title: 'product.name',
+              qty: 'quantity',
+              size: 'size',
+              color: 'color',
+            },
+            prepare({ title, qty, size, color }: any) {
+              const variants = [size, color].filter(Boolean).join(' · ');
+              return {
+                title: title ?? 'Unknown Product',
+                subtitle: `Qty: ${qty ?? 1}${variants ? ` · ${variants}` : ''}`,
+              };
             },
           },
+          fields: [
+            {
+              name: 'product',
+              title: 'Product',
+              type: 'reference',
+              to: [{ type: 'product' }],
+              validation: (Rule: any) => Rule.required(),
+            },
+            {
+              name: 'quantity',
+              title: 'Quantity',
+              type: 'number',
+              validation: (Rule: any) => Rule.required().min(1).integer(),
+            },
+            {
+              name: 'size',
+              title: 'Selected Size',
+              type: 'string',
+            },
+            {
+              name: 'color',
+              title: 'Selected Color',
+              type: 'string',
+            },
+          ],
         },
       ],
-      validation: (Rule: any) => Rule.required().min(1),
     },
+
+    // ── Payment ──────────────────────────────────────────────────────────────
     {
-      name: 'price',
-      title: 'Price',
-      type: 'number',
+      name: 'paymentMode',
+      title: 'Payment Mode',
+      type: 'string',
+      options: {
+        list: [
+          { title: 'Online Payment', value: 'online' },
+          { title: 'Cash on Delivery', value: 'cod' },
+        ],
+        layout: 'radio',
+      },
       validation: (Rule: any) => Rule.required(),
     },
     {
-      name: 'salesPrice',
-      title: 'Sales Price',
-      type: 'number',
-      validation: (Rule: any) => Rule.required(),
-    },
-    {
-      name: 'sizes',
-      title: 'Available Sizes',
-      type: 'array',
-      of: [{ type: 'string' }],
-    },
-    {
-      name: 'colors',
-      title: 'Available Colors',
-      type: 'array',
-      of: [{ type: 'string' }],
-      description: 'List available colors (e.g., Red, Blue, Black)',
-    },
-    {
-      name: 'features',
-      title: 'Key Features',
-      type: 'array',
-      of: [{ type: 'string' }],
-      description: 'List key features (like material, design, fit, etc.)',
-    },
-    {
-      name: 'description',
-      title: 'Description',
-      type: 'text',
-    },
-    {
-      name: 'category',
-      title: 'Category',
-      type: 'reference',
-      to: [{ type: 'category' }],
-    },
-    {
-      name: 'featured',
-      title: 'Featured Product',
+      name: 'paymentStatus',
+      title: 'Payment Received',
       type: 'boolean',
       initialValue: false,
+      description: 'Mark true once advance/full payment is confirmed',
     },
     {
-      name: 'quantity',
-      title: 'Stock Quantity',
+      name: 'transactionId',
+      title: 'Transaction ID',
+      type: 'string',
+      description: 'UPI / payment gateway transaction reference',
+    },
+    {
+      name: 'shippingCharges',
+      title: 'Shipping Charges (₹)',
       type: 'number',
+      initialValue: 0,
       validation: (Rule: any) => Rule.min(0),
     },
     {
-      name: 'soldOut',
-      title: 'Sold Out',
-      type: 'boolean',
-      initialValue: false,
-    },
-    {
-      name: 'rating',
-      title: 'Average Rating',
+      name: 'totalAmount',
+      title: 'Total Amount (₹)',
       type: 'number',
-      description: 'Average rating out of 5 (e.g., 4.3)',
-      validation: (Rule: any) => Rule.min(0).max(5),
+      validation: (Rule: any) => Rule.required().min(0),
     },
     {
-      name: 'codAvailable',
-      title: 'Cash on Delivery Available',
-      type: 'boolean',
-      description: 'Toggle whether this product can be purchased with Cash on Delivery',
-      initialValue: true,
+      name: 'advanceAmount',
+      title: 'Advance Paid (₹)',
+      type: 'number',
+      initialValue: 0,
+      validation: (Rule: any) => Rule.min(0),
+      description: 'For COD: advance collected upfront. For online: equals total.',
+    },
+    {
+      name: 'codRemaining',
+      title: 'COD Remaining (₹)',
+      type: 'number',
+      initialValue: 0,
+      validation: (Rule: any) => Rule.min(0),
+      description: 'Amount to collect on delivery (0 for online orders)',
+    },
+
+    // ── Status ───────────────────────────────────────────────────────────────
+    {
+      name: 'orderStatus',
+      title: 'Order Status',
+      type: 'string',
+      options: {
+        list: [
+          { title: '🕐 Pending', value: 'pending' },
+          { title: '⚙️ Processing', value: 'processing' },
+          { title: '🚚 Shipped', value: 'shipped' },
+          { title: '✅ Delivered', value: 'delivered' },
+          { title: '❌ Cancelled', value: 'cancelled' },
+        ],
+        layout: 'radio',
+      },
+      initialValue: 'pending',
+      validation: (Rule: any) => Rule.required(),
+    },
+    {
+      name: 'trackingId',
+      title: 'Tracking ID / AWB',
+      type: 'string',
+      description: 'Courier tracking number once shipped',
+    },
+    {
+      name: 'notes',
+      title: 'Internal Notes',
+      type: 'text',
+      rows: 2,
+      description: 'Visible only in Sanity Studio',
+    },
+
+    // ── Timestamps ───────────────────────────────────────────────────────────
+    {
+      name: 'orderedAt',
+      title: 'Ordered At',
+      type: 'datetime',
+      initialValue: () => new Date().toISOString(),
+      readOnly: true,
     },
   ],
 };
