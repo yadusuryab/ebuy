@@ -198,9 +198,9 @@ const ProductDetailsClient = ({ product }: { product: any }) => {
           readOnly 
           iconSize={16}
         />
-        <span className="text-sm text-[#666666]">
+        {/* <span className="text-sm text-[#666666]">
           ({product.reviewCount || 0} reviews)
-        </span>
+        </span> */}
       </div>
 
       {/* Price */}
