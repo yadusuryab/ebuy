@@ -31,7 +31,7 @@ const CHANNELS = [
      <IconBrandInstagram/>
     ),
     label: "Instagram",
-    value: "@ebuyonlinestore_",
+    value: "@ebuyonlinestore.in",
     href: process.env.NEXT_PUBLIC_INSTA,
     hint: "DM us anytime",
   },

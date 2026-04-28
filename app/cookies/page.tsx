@@ -29,7 +29,7 @@ export default function CookiesPolicy() {
           </li>
           <li>
             <strong>Website:</strong> Refers to Ebuy Online Store, accessible from
-            <a href="https://ebuyonlinestore.online" target="_blank" rel="noopener noreferrer" className="text-blue-500"> ebuyonlinestore.online</a>.
+            <a href="https://ebuyonlinestore.in" target="_blank" rel="noopener noreferrer" className="text-blue-500"> ebuyonlinestore.in</a>.
           </li>
           <li>
             <strong>You:</strong> The individual or legal entity accessing or using the Website.
@@ -71,12 +71,12 @@ export default function CookiesPolicy() {
         <p>
           If you have any questions about this Cookies Policy, contact us at:
           <a
-            href="https://ebuyonlinestore.online/contact"
+            href="https://ebuyonlinestore.in/contact"
             target="_blank"
             rel="noopener noreferrer"
             className="text-blue-500"
           >
-            ebuyonlinestore.online/contact
+            ebuyonlinestore.in/contact
           </a>
           .
         </p>
