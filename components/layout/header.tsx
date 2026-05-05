@@ -4,6 +4,7 @@ import Brand from "../utils/brand";
 import { Button } from "../ui/button";
 import Link from "next/link";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import Image from "next/image";
 import {
   IconSearch,
   IconShoppingBag,
@@ -12,7 +13,6 @@ import {
   IconChevronRight,
   IconPackage,
   IconMenu,
-  IconTruck,
   IconTruckDelivery,
 } from "@tabler/icons-react";
 import MarqueeStrip from "../sections/marquee-strip";
@@ -46,6 +46,16 @@ const PLACEHOLDERS = [
   "Discover trends",
 ];
 
+// Types for optimized categories
+type OptimizedCategory = {
+  _id: string;
+  name: string;
+  slug: string;
+  imageUrl?: string;
+  imageUrlWebp?: string;
+  imageUrlLarge?: string;
+};
+
 function HeaderWithSearchParams({
   children,
 }: {
@@ -61,9 +71,51 @@ function HeaderWithSearchParams({
   return children({ searchParams, pathname, router });
 }
 
+// Optimized Category Image Component
+const CategoryImage: React.FC<{
+  imageUrl?: string;
+  imageUrlWebp?: string;
+  name: string;
+  isScrolled: boolean;
+}> = ({ imageUrl, imageUrlWebp, name, isScrolled }) => {
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [error, setError] = useState(false);
+
+  if (!imageUrl || error) {
+    return (
+      <div className="w-full h-full flex items-center justify-center bg-gray-50">
+        <IconShoppingBag size={18} className="text-gray-400" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="relative w-full h-full">
+      {!isLoaded && (
+        <div className="absolute inset-0 bg-gray-100 animate-pulse" />
+      )}
+      <picture>
+        {imageUrlWebp && (
+          <source srcSet={imageUrlWebp} type="image/webp" />
+        )}
+        <img
+          src={imageUrl}
+          alt={name}
+          className={`w-full h-full object-cover transition-opacity duration-300 ${
+            isLoaded ? 'opacity-100' : 'opacity-0'
+          }`}
+          onLoad={() => setIsLoaded(true)}
+          onError={() => setError(true)}
+          loading="lazy"
+        />
+      </picture>
+    </div>
+  );
+};
+
 function Header() {
   const [searchQuery, setSearchQuery] = useState("");
-  const [categories, setCategories] = useState<any[]>([]);
+  const [categories, setCategories] = useState<OptimizedCategory[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isScrolled, setIsScrolled] = useState(false);
@@ -74,9 +126,6 @@ function Header() {
 
   const searchInputRef = useRef<HTMLInputElement>(null);
   const desktopSearchInputRef = useRef<HTMLInputElement>(null);
-  const topSectionRef = useRef<HTMLDivElement>(null);
-  const lastScrollY = useRef(0);
-  const ticking = useRef(false);
 
   useEffect(() => {
     document.body.style.overflow = isMobileMenuOpen ? "hidden" : "";
@@ -96,15 +145,13 @@ function Header() {
     <Suspense fallback={<HeaderFallback />}>
       <HeaderWithSearchParams>
         {({ searchParams, pathname, router }) => {
-          const shouldHideSearch  = HIDE_SEARCH_PATHS.some(p => pathname.startsWith(p));
+          const shouldHideSearch = HIDE_SEARCH_PATHS.some(p => pathname.startsWith(p));
           const shouldHideMarquee = HIDE_MARQUEE_PATHS.some(p => pathname.startsWith(p));
 
-          // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             setSelectedCategory(searchParams.get("category"));
           }, [searchParams]);
 
-          // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             if (shouldHideSearch) return;
             const id = setInterval(() => {
@@ -117,18 +164,18 @@ function Header() {
             return () => clearInterval(id);
           }, [shouldHideSearch]);
 
-          // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             (async () => {
               try {
                 setIsLoading(true);
-                const cached    = localStorage.getItem("categories_cache");
+                const cached = localStorage.getItem("categories_cache");
                 const cacheTime = localStorage.getItem("categories_cache_time");
-                const now       = Date.now();
-                if (cached && cacheTime && now - +cacheTime < 600_000) {
+                const now = Date.now();
+                if (cached && cacheTime && now - +cacheTime < 3600000) { // 1 hour cache
                   setCategories(JSON.parse(cached));
                 } else {
-                  const data = await fetch("/api/categories").then(r => r.json());
+                  const response = await fetch("/api/categories");
+                  const data = await response.json();
                   setCategories(data);
                   localStorage.setItem("categories_cache", JSON.stringify(data));
                   localStorage.setItem("categories_cache_time", String(now));
@@ -141,23 +188,21 @@ function Header() {
             })();
           }, []);
 
-          // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
+            let ticking = false;
             const onScroll = () => {
-              lastScrollY.current = window.scrollY;
-              if (!ticking.current) {
+              if (!ticking) {
                 requestAnimationFrame(() => {
-                  setIsScrolled(lastScrollY.current > 50);
-                  ticking.current = false;
+                  setIsScrolled(window.scrollY > 50);
+                  ticking = false;
                 });
-                ticking.current = true;
+                ticking = true;
               }
             };
             window.addEventListener("scroll", onScroll, { passive: true });
             return () => window.removeEventListener("scroll", onScroll);
           }, []);
 
-          // eslint-disable-next-line react-hooks/rules-of-hooks
           useEffect(() => {
             const handler = (e: MouseEvent) => {
               const target = e.target as Node;
@@ -201,21 +246,21 @@ function Header() {
           };
 
           const navLinks = [
-            { href: "/",            label: "Home",         icon: <IconHome size={20} /> },
-            { href: "/products",    label: "All Products", icon: <IconPackage size={20} /> },
-            { href: "/cart",        label: "Cart",         icon: <IconShoppingBag size={20} /> },
-            { href: "/track-order", label: "Track Order",  icon: <IconTruckDelivery size={20} /> },
+            { href: "/", label: "Home", icon: <IconHome size={20} /> },
+            { href: "/products", label: "All Products", icon: <IconPackage size={20} /> },
+            { href: "/cart", label: "Cart", icon: <IconShoppingBag size={20} /> },
+            { href: "/track-order", label: "Track Order", icon: <IconTruckDelivery size={20} /> },
           ];
 
           const desktopNavLinks = [
-            { href: "/",            label: "Home" },
-            { href: "/products",    label: "Shop" },
-            { href: "/track-order", label: "Track Order" },
+            { href: "/", label: "Home" },
+            { href: "/products", label: "Shop" },
+         
           ];
 
           return (
             <>
-              <style>{`
+              <style jsx>{`
                 @keyframes slideDown {
                   from { opacity: 0; transform: translateY(-8px); }
                   to   { opacity: 1; transform: translateY(0); }
@@ -248,8 +293,6 @@ function Header() {
                 }
                 .icon-btn:hover  { background: #f3f4f6; transform: scale(1.05); }
                 .icon-btn:active { transform: scale(.95); }
-
-                /* ── Desktop search expand ── */
                 .desktop-search-wrapper {
                   display: flex;
                   align-items: center;
@@ -278,12 +321,12 @@ function Header() {
                 .desktop-nav-link.active { color: #ea580c; background: #fff7ed; }
               `}</style>
 
-              {/* ── Mobile Menu Overlay ── */}
+              {/* Mobile Menu Overlay */}
               <div
                 className="fixed inset-0 z-[60] md:hidden"
                 style={{
                   pointerEvents: isMobileMenuOpen ? "auto" : "none",
-                  visibility:    isMobileMenuOpen ? "visible" : "hidden",
+                  visibility: isMobileMenuOpen ? "visible" : "hidden",
                 }}
               >
                 <div
@@ -359,7 +402,7 @@ function Header() {
                               <div className="h-3.5 bg-gray-100 rounded animate-pulse flex-1" />
                             </div>
                           ))
-                        : categories?.map((cat: any) => (
+                        : categories?.map((cat: OptimizedCategory) => (
                             <button
                               key={cat._id}
                               onClick={() => { handleCategoryClick(cat.slug); setIsMobileMenuOpen(false); }}
@@ -370,9 +413,12 @@ function Header() {
                               }`}
                             >
                               <div className="w-8 h-8 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-                                {cat.image
-                                  ? <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                                  : <IconShoppingBag size={16} className="m-auto mt-1.5 text-gray-400" />}
+                                <CategoryImage
+                                  imageUrl={cat.imageUrl}
+                                  imageUrlWebp={cat.imageUrlWebp}
+                                  name={cat.name}
+                                  isScrolled={false}
+                                />
                               </div>
                               <span className="flex-1 text-sm text-left">{cat.name}</span>
                             </button>
@@ -388,29 +434,28 @@ function Header() {
                 </div>
               </div>
 
-              {/* ── Main Header ── */}
+              {/* Main Header */}
               <header className="header-animate fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-gray-100">
-
                 {/* Marquee strip */}
                 {!shouldHideMarquee && (
                   <div
                     className="top-strip"
                     style={{
                       maxHeight: isScrolled ? "0px" : "40px",
-                      opacity:   isScrolled ? 0 : 1,
+                      opacity: isScrolled ? 0 : 1,
                     }}
                   >
                     <MarqueeStrip />
                   </div>
                 )}
 
-                {/* ════════ MOBILE brand/icon row ════════ */}
+                {/* MOBILE brand/icon row */}
                 <div className="md:hidden search-container relative h-14 overflow-hidden">
                   <div
                     className="absolute inset-0 flex items-center px-3 gap-2 transition-all duration-300 ease-[cubic-bezier(.22,1,.36,1)]"
                     style={{
-                      opacity:       isSearchOpen ? 0 : 1,
-                      transform:     isSearchOpen ? "translateY(-10px)" : "translateY(0)",
+                      opacity: isSearchOpen ? 0 : 1,
+                      transform: isSearchOpen ? "translateY(-10px)" : "translateY(0)",
                       pointerEvents: isSearchOpen ? "none" : "auto",
                     }}
                   >
@@ -450,8 +495,8 @@ function Header() {
                     <div
                       className="absolute inset-0 flex items-center px-3 gap-2 transition-all duration-300 ease-[cubic-bezier(.22,1,.36,1)]"
                       style={{
-                        opacity:       isSearchOpen ? 1 : 0,
-                        transform:     isSearchOpen ? "translateY(0)" : "translateY(10px)",
+                        opacity: isSearchOpen ? 1 : 0,
+                        transform: isSearchOpen ? "translateY(0)" : "translateY(10px)",
                         pointerEvents: isSearchOpen ? "auto" : "none",
                       }}
                     >
@@ -481,30 +526,26 @@ function Header() {
                   )}
                 </div>
 
-                {/* ════════ DESKTOP nav row ════════ */}
+                {/* DESKTOP nav row */}
                 <div className="hidden md:flex items-center gap-4 px-6 lg:px-10 h-16">
-                  {/* Logo */}
                   <Link href="/" className="flex-shrink-0 transition-opacity hover:opacity-75 mr-2">
                     <Brand />
                   </Link>
 
-                  {/* Nav links */}
                   <nav className="flex items-center gap-1">
                     {desktopNavLinks.map(link => (
                       <Link
                         key={link.href}
                         href={link.href}
-                        className={`desktop-nav-link ${pathname === link.href ? "active" : ""}`}
+                        className={`desktop-nav-link text-muted-foreground pr-2 ${pathname === link.href ? "active" : ""}`}
                       >
                         {link.label}
                       </Link>
                     ))}
                   </nav>
 
-                  {/* Spacer */}
                   <div className="flex-1" />
 
-                  {/* Search — expands on click */}
                   {!shouldHideSearch && (
                     <div className={`desktop-search-container desktop-search-wrapper ${isSearchOpen ? "desktop-search-open" : ""}`}>
                       <form
@@ -551,7 +592,6 @@ function Header() {
                     </div>
                   )}
 
-                  {/* Cart */}
                   <Link href="/cart">
                     <button className="icon-btn text-gray-600" aria-label="Cart">
                       <IconShoppingBag size={21} />
@@ -559,7 +599,7 @@ function Header() {
                   </Link>
                 </div>
 
-                {/* ════════ Categories strip (shared mobile + desktop) ════════ */}
+                {/* Categories strip */}
                 {!shouldHideSearch && (
                   <div className="px-3 md:px-6 lg:px-10 pb-2 pt-1 flex overflow-x-auto gap-2 scrollbar-hide border-t border-gray-50">
                     <button
@@ -573,8 +613,8 @@ function Header() {
                       <div
                         className="rounded-lg overflow-hidden flex items-center justify-center transition-all duration-400"
                         style={{
-                          width:   isScrolled ? 0 : 44,
-                          height:  isScrolled ? 0 : 44,
+                          width: isScrolled ? 0 : 44,
+                          height: isScrolled ? 0 : 44,
                           opacity: isScrolled ? 0 : 1,
                         }}
                       >
@@ -593,7 +633,7 @@ function Header() {
                             <div className="h-3 w-12 bg-gray-100 rounded animate-pulse" />
                           </div>
                         ))
-                      : categories?.map((cat: any) => (
+                      : categories?.map((cat: OptimizedCategory) => (
                           <button
                             key={cat._id}
                             onClick={() => handleCategoryClick(cat.slug)}
@@ -606,16 +646,17 @@ function Header() {
                             <div
                               className="rounded-lg overflow-hidden bg-gray-100 transition-all duration-400"
                               style={{
-                                width:   isScrolled ? 0 : 44,
-                                height:  isScrolled ? 0 : 44,
+                                width: isScrolled ? 0 : 44,
+                                height: isScrolled ? 0 : 44,
                                 opacity: isScrolled ? 0 : 1,
                               }}
                             >
-                              {cat.image
-                                ? <img src={cat.image} alt={cat.name} className="w-full h-full object-cover" />
-                                : <div className="w-full h-full flex items-center justify-center">
-                                    <IconShoppingBag size={18} className="text-gray-400" />
-                                  </div>}
+                              <CategoryImage
+                                imageUrl={cat.imageUrl}
+                                imageUrlWebp={cat.imageUrlWebp}
+                                name={cat.name}
+                                isScrolled={isScrolled}
+                              />
                             </div>
                             <span className="truncate max-w-[60px]">{cat.name}</span>
                           </button>
@@ -624,7 +665,7 @@ function Header() {
                 )}
               </header>
 
-              {/* ── Dynamic spacer ── */}
+              {/* Dynamic spacer */}
               <div
                 style={{
                   height: isScrolled

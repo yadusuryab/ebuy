@@ -1,5 +1,12 @@
 import { sanityClient } from "@/lib/sanity";
 import { NextResponse } from "next/server";
+import imageUrlBuilder from '@sanity/image-url';
+
+const builder = imageUrlBuilder(sanityClient);
+
+function urlFor(source: any) {
+  return builder.image(source);
+}
 
 export async function GET() {
   try {
@@ -7,7 +14,7 @@ export async function GET() {
       _id,
       title,
       subtitle,
-      "imageUrl": image.asset->url,
+      image,
       ctaText,
       ctaLink,
       mediaType,
@@ -25,8 +32,51 @@ export async function GET() {
     }`;
 
     const banners = await sanityClient.fetch(query);
-    console.log("Fetched banners:", banners); // Check what's returned
-    return NextResponse.json(banners);
+    
+    // Add optimized image URLs
+    const optimizedBanners = banners.map((banner: any) => {
+      if (banner.image?.asset) {
+        return {
+          ...banner,
+          imageUrl: urlFor(banner.image)
+            .width(1920)
+            .height(1080)
+            .quality(80)
+            .fit('crop')
+            .auto('format')
+            .url(),
+          imageUrlMobile: urlFor(banner.image)
+            .width(768)
+            .height(1024)
+            .quality(75)
+            .fit('crop')
+            .auto('format')
+            .url(),
+          imageUrlWebp: urlFor(banner.image)
+            .width(1920)
+            .height(1080)
+            .quality(80)
+            .format('webp')
+            .fit('crop')
+            .url(),
+          lqip: urlFor(banner.image)
+            .width(20)
+            .height(20)
+            .quality(20)
+            .blur(10)
+            .url(),
+        };
+      }
+      return banner;
+    });
+    
+    console.log("Fetched and optimized banners:", optimizedBanners.length);
+    
+    return NextResponse.json(optimizedBanners, {
+      headers: {
+        'Cache-Control': 'public, s-maxage=60, stale-while-revalidate=300',
+      },
+    });
   } catch (error) {
     console.error("Failed to fetch banners:", error);
     return NextResponse.json({ error: "Failed to fetch banners" }, { status: 500 });

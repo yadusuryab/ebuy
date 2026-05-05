@@ -88,13 +88,24 @@ function ProductsSection({
         {/* ── Header bar ── */}
         <div style={{ borderTop: "1px solid #1a1a1a", borderBottom: "1px solid #d4cbbf", padding: "0 28px", display: "flex", alignItems: "stretch", justifyContent: "space-between" }}>
           <div style={{ padding: "20px 0", borderRight: "1px solid #d4cbbf", paddingRight: "32px", flex: "0 0 auto", display: "flex", flexDirection: "column", justifyContent: "center", gap: "4px" }}>
-            <span style={{ fontFamily: '"DM Mono", monospace', fontSize: "9px", letterSpacing: "0.3em", textTransform: "uppercase", color: "#9c8a72" }}>
-              {desc || "Products"}
+          <div
+            className="flex items-center gap-2 mb-2 md:mb-3 transition-all duration-500"
+            style={{ 
+              opacity: visible ? 1 : 0, 
+              transform: visible ? 'translateY(0)' : 'translateY(8px)' 
+            }}
+          >    <span className="text-xs md:text-sm tracking-tighter uppercase text-orange-600 font-semibold">              {desc || "Products"}
             </span>
+            <div className="h-px w-6 md:w-8 bg-orange-500" />
+</div>
             <h2
-              className="tracking-tighter text-2xl font-bold"
-              style={{ lineHeight: 0.95, margin: 0, opacity: visible ? 1 : 0, transform: visible ? "translateY(0)" : "translateY(8px)", transition: "opacity 0.5s ease, transform 0.5s ease" }}
-            >
+              className="leading-none tracking-tighter m-0 transition-all duration-500 font-bold text-neutral-900"
+              style={{
+                fontSize: 'clamp(28px, 6vw, 48px)',
+                opacity: visible ? 1 : 0,
+                transform: visible ? 'translateY(0)' : 'translateY(12px)',
+                transitionDelay: '70ms',
+              }}  >
               {title}
             </h2>
           </div>
@@ -111,7 +122,7 @@ function ProductsSection({
         <div className="prod-grid">
           {loading ? (
             Array.from({ length: colCount * 2 }).map((_, i) => (
-              <div key={i} style={{ background: "#f8f4ee", borderLeft: "1px solid #e5ddd3" }}>
+              <div key={i} style={{ background: "#f8f4ee", borderLeft: "1px solid #da4c28" }}>
                 <ProductSkeleton index={i} />
               </div>
             ))
