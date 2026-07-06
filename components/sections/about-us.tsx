@@ -30,10 +30,8 @@ import { IconBrandInstagram } from "@tabler/icons-react";
    Data
 ───────────────────────────────────────── */
 const instagramAccounts = [
-  { id: "ebuyonlinestore.in",     label: "Main Store" },
-  { id: "ebuyonline_watches",   label: "Watches" },
-  { id: "ebuyonline_gadgets",   label: "Gadgets" },
-  { id: "ebuyonline_ladies",    label: "Ladies" },
+  { id: "e.buyonlinestore.in",     label: "Main Store" },
+
 ];
 const services = [
   {
