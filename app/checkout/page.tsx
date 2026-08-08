@@ -110,8 +110,6 @@ export default function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<"online" | "cod">("online");
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [isLoadingPincode, setIsLoadingPincode] = useState(false);
-  const [onlineCharge, setOnlineCharge] = useState("")
-  const [codCharge, setcodCharge] = useState("")
   
   const router = useRouter();
 
@@ -163,23 +161,17 @@ export default function CheckoutPage() {
     }
   }, [watchState, setValue]);
 
-  // Replace the existing useEffect for calculateShipping with this:
-
-// Calculate shipping based on location and payment method
-useEffect(() => {
-  const calculateShipping = () => {
-    const actualState = getActualState();
-    
-    if (!actualState) {
-      // Default values before location is selected
-      setShippingCharges(0);
-      setDeliveryTime("Select location for delivery estimate");
-      return;
-    }
-    
-    // Calculate shipping charges based on payment method AND location
-    if (paymentMethod === "online") {
-      // Online payment: Free shipping for Kerala, ₹50 for outside Kerala
+  // Calculate shipping based on location
+  useEffect(() => {
+    const calculateShipping = () => {
+      const actualState = getActualState();
+      
+      if (!actualState) {
+        setShippingCharges(0);
+        setDeliveryTime("Select location for delivery estimate");
+        return;
+      }
+      
       if (isKeralaLocation(actualState)) {
         setShippingCharges(0);
         setDeliveryTime("Kerala: 2–3 days delivery");
@@ -187,28 +179,19 @@ useEffect(() => {
         setShippingCharges(50);
         setDeliveryTime("Outside Kerala: 6–7 days delivery");
       }
-    } else {
-      setShippingCharges(100);
-      // COD payment: Additional charges apply
-      if (isKeralaLocation(actualState)) {
-        // ₹100 COD charge for Kerala
-        setDeliveryTime("Kerala: 2–3 days delivery");
-      } else {
-        setDeliveryTime("Outside Kerala: 6–7 days delivery");
-      }
-    }
-  };
-  
-  calculateShipping();
-}, [paymentMethod, watchState, watchManualState, getActualState]);
+    };
+    
+    calculateShipping();
+  }, [watchState, watchManualState, getActualState]);
 
-// Add this useEffect to reset district when state changes
-useEffect(() => {
-  if (watchState) {
-    setValue("district", "");
-    setValue("manualDistrict", "");
-  }
-}, [watchState, setValue]);
+  // Reset district when state changes
+  useEffect(() => {
+    if (watchState) {
+      setValue("district", "");
+      setValue("manualDistrict", "");
+    }
+  }, [watchState, setValue]);
+
   // Handle pincode lookup
   const handlePincodeLookup = useCallback(() => {
     const pincode = watchPincode;
@@ -221,12 +204,10 @@ useEffect(() => {
 
     setIsLoadingPincode(true);
     
-    // Simulate async behavior for smooth UX
     setTimeout(() => {
       const location = getLocationFromPincode(pincode);
       
       if (location) {
-        // Check if state exists in our list
         const stateExists = statesData.some(s => 
           s.name.toLowerCase() === location.state.toLowerCase()
         );
@@ -234,10 +215,8 @@ useEffect(() => {
         if (stateExists) {
           setValue("state", location.state);
           
-          // Get districts for this state
           const stateDistricts = getDistrictsByState(location.state);
           
-          // Check if district exists
           const districtExists = stateDistricts.some(
             d => d.toLowerCase() === location.district.toLowerCase()
           );
@@ -245,7 +224,6 @@ useEffect(() => {
           if (districtExists) {
             setValue("district", location.district);
           } else {
-            // District not in list, use manual entry
             setValue("district", MANUAL_ENTRY);
             setValue("manualDistrict", location.district);
           }
@@ -263,7 +241,6 @@ useEffect(() => {
             </div>
           );
         } else {
-          // State not in list, use manual entry
           setValue("state", MANUAL_ENTRY);
           setValue("manualState", location.state);
           setValue("district", MANUAL_ENTRY);
@@ -308,25 +285,68 @@ useEffect(() => {
 
   const handleOrder = async (data: FormData) => {
     if (!showPayment) {
-      const paymentAmount = paymentMethod === "online" ? total : 100;
-      setQrCodeValue(generateUpiLink(paymentAmount));
-      
-      // Prepare order data with actual location values
-      const orderData = {
-        ...data,
-        actualState: getActualState(),
-        actualDistrict: getActualDistrict(),
-        cart,
-        total,
-        paymentMethod
-      };
-      
-      localStorage.setItem("pendingOrder", JSON.stringify(orderData));
-      setShowPayment(true);
-      window.scrollTo({ top: 0, behavior: "smooth" });
-      return;
+      // Only show payment screen for online payments
+      if (paymentMethod === "online") {
+        setQrCodeValue(generateUpiLink(total));
+        
+        const orderData = {
+          ...data,
+          actualState: getActualState(),
+          actualDistrict: getActualDistrict(),
+          cart,
+          total,
+          paymentMethod
+        };
+        
+        localStorage.setItem("pendingOrder", JSON.stringify(orderData));
+        setShowPayment(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      } else {
+        // For COD, place order directly without payment screen
+        setIsSubmitting(true);
+        try {
+          const orderData = {
+            ...data,
+            actualState: getActualState(),
+            actualDistrict: getActualDistrict(),
+            products: cart.map((p) => ({ 
+              product: p._id, 
+              quantity: p.cartQty, 
+              size: p.size || null, 
+              color: p.color || null 
+            })),
+            paymentMode: "cod",
+            shippingCharges,
+            totalAmount: total,
+            advanceAmount: 0, // No advance payment for COD
+            codRemaining: total, // Full amount on delivery
+            paymentStatus: false, // Payment pending for COD
+            transactionId: "COD-" + Date.now(),
+          };
+          
+          const res = await fetch("/api/create-order", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(orderData),
+          });
+          
+          if (!res.ok) throw new Error();
+          
+          const respdata = await res.json();
+          localStorage.removeItem("cart");
+          localStorage.removeItem("pendingOrder");
+          router.push(`/order/${respdata.orderId}`);
+        } catch {
+          toast.error("Failed to place order. Please try again.");
+        } finally {
+          setIsSubmitting(false);
+        }
+        return;
+      }
     }
     
+    // Handle online payment submission
     setIsSubmitting(true);
     try {
       const orderData = {
@@ -339,11 +359,11 @@ useEffect(() => {
           size: p.size || null, 
           color: p.color || null 
         })),
-        paymentMode: paymentMethod,
+        paymentMode: "online",
         shippingCharges,
         totalAmount: total,
-        advanceAmount: paymentMethod === "cod" ? 100 : total,
-        codRemaining: paymentMethod === "cod" ? total - 100 : 0,
+        advanceAmount: total,
+        codRemaining: 0,
         paymentStatus: true,
         transactionId,
       };
@@ -390,26 +410,11 @@ useEffect(() => {
   const showManualStateInput = isManualEntry(watchState);
   const showManualDistrictInput = isManualEntry(watchDistrict);
 
-  // Get shipping badge text
- // Replace the getShippingBadgeText function with this:
-const getOnlineBadgeText = () => {
-  const actualState = getActualState();
-  if (!actualState) return "";
-  
-
-   return isKeralaLocation(actualState) ? "FREE SHIPPING" : "Extra ₹50 shipping";
- 
-};
-
-const getCodBadgeText = () => {
-
-  
- 
-      return "Extra ₹100 shipping";
-   
- 
-};
-
+  const getShippingBadgeText = () => {
+    const actualState = getActualState();
+    if (!actualState) return "";
+    return isKeralaLocation(actualState) ? "FREE SHIPPING" : "Extra ₹50 shipping";
+  };
 
   return (
     <>
@@ -498,7 +503,7 @@ const getCodBadgeText = () => {
                   <span>Subtotal</span><span className="text-white/70">₹{subtotal}</span>
                 </div>
                 <div className="flex justify-between text-white/50">
-                  <span>{paymentMethod === "online" ? "Shipping" : "COD charges"}</span>
+                  <span>Shipping</span>
                   <span className={shippingCharges === 0 ? "text-white font-medium" : "text-white/70"}>
                     {shippingCharges === 0 ? "Free" : `₹${shippingCharges}`}
                   </span>
@@ -514,6 +519,16 @@ const getCodBadgeText = () => {
                 <Truck className="w-3.5 h-3.5 mt-0.5 shrink-0" />
                 <span>{deliveryTime || "Select location for estimate"}</span>
               </div>
+
+              {/* Payment method info */}
+              {paymentMethod === "cod" && (
+                <div className="mt-3 flex items-start gap-2 text-white/40 text-xs">
+                  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="w-3.5 h-3.5 mt-0.5 shrink-0">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                  </svg>
+                  <span>Pay ₹{total} on delivery</span>
+                </div>
+              )}
 
               {/* Location summary if selected */}
               {getActualState() && (
@@ -582,15 +597,13 @@ const getCodBadgeText = () => {
 
             <div className="px-5 lg:px-10 py-7">
 
-              {/* PAYMENT VIEW */}
+              {/* PAYMENT VIEW - Only for online payments */}
               {showPayment ? (
                 <div className="max-w-md slide-down space-y-6">
                   <div>
                     <h2 className="text-lg font-semibold text-[#111827]">Complete Payment</h2>
                     <p className="text-sm text-[#6b7280] mt-0.5">
-                      {paymentMethod === "online"
-                        ? `Pay ₹${total} to confirm your order`
-                        : `Pay ₹100 advance. Remaining ₹${total - 100} on delivery.`}
+                      Pay ₹{total} to confirm your order
                     </p>
                   </div>
 
@@ -610,9 +623,7 @@ const getCodBadgeText = () => {
                       <div className="flex-1 w-full space-y-4">
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6b7280] mb-1">Amount</p>
-                          <p className="text-2xl font-bold text-[#111827]">
-                            ₹{paymentMethod === "online" ? total : 100}
-                          </p>
+                          <p className="text-2xl font-bold text-[#111827]">₹{total}</p>
                         </div>
                         <div>
                           <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#6b7280] mb-1">UPI ID</p>
@@ -829,7 +840,7 @@ const getCodBadgeText = () => {
                                 ${getActualState() && isKeralaLocation(getActualState()!) 
                                   ? "text-[#22c55e] bg-[#f0fdf4]" 
                                   : "text-[#f59e0b] bg-[#fffbeb]"}`}>
-                                {getOnlineBadgeText()}
+                                {getShippingBadgeText()}
                               </span>
                             )}
                           </div>
@@ -851,27 +862,25 @@ const getCodBadgeText = () => {
                           <div className="flex items-center justify-between">
                             <span className="text-sm font-medium text-[#111827]">Cash on Delivery</span>
                             {getActualState() && (
-                              <span className={`text-xs font-semibold px-2 py-0.5 rounded-full
-                                ${getActualState() && isKeralaLocation(getActualState()!) 
-                                  ? "text-[#f59e0b] bg-[#fffbeb]" 
-                                  : "text-[#ef4444] bg-[#fef2f2]"}`}>
-                                {getCodBadgeText()}
+                              <span className="text-xs font-semibold px-2 py-0.5 rounded-full text-[#22c55e] bg-[#f0fdf4]">
+                                Pay on delivery
                               </span>
                             )}
                           </div>
                           <p className="text-xs text-[#6b7280] mt-0.5">
-                            Pay ₹100 advance + rest on delivery
-                            {getActualState()}
+                            Pay ₹{total} when you receive your order
                           </p>
                         </div>
                       </label>
                     </div>
                   </div>
+
                   <div className="px-4">
                     <p className="text-md font-semibold">
                       {deliveryTime}
                     </p>
                   </div>
+
                   {/* Policy notice */}
                   <div className="flex items-start gap-2.5 bg-[#fffbeb] border border-[#fde68a] rounded-lg px-4 py-3">
                     <AlertCircle className="w-4 h-4 text-[#d97706] shrink-0 mt-0.5" />
@@ -891,7 +900,7 @@ const getCodBadgeText = () => {
                     size={'lg'}
                   >
                     <Lock className="w-4 h-4" />
-                    Proceed to Payment →
+                    {paymentMethod === "cod" ? "Place Order" : "Proceed to Payment →"}
                   </Button>
                 </form>
               )}
